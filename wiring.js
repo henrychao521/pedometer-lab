@@ -19,10 +19,7 @@ const PARTS = {
     { id: 'P', n: '＋', s: 'r', p: .30, k: 'bzp' }, { id: 'N', n: '−', s: 'r', p: .72, k: 'bzn' } ] },
   bat: { label: '鋰電池', sub: '1000 mAh · 3.7 V', x: 580, y: 300, w: 150, h: 80, cls: '#f2dfe3', pins: [
     { id: 'P', n: '＋', s: 'l', p: .30, k: 'src' }, { id: 'N', n: '−', s: 'l', p: .72, k: 'gnd' } ] },
-  sw: { label: '電源開關', sub: '串在正極線', x: 580, y: 160, w: 150, h: 70, cls: '#eee9d8', internal: [['A', 'B']], pins: [
-    { id: 'A', n: '1', s: 'l', p: .5, k: 'pass' }, { id: 'B', n: 'B', s: 'b', p: .5, k: 'pass' } ] },
 };
-PARTS.sw.pins[1].n = '2';
 const state = { accelOk: true, buzzerOk: true, checked: false };
 let wires = JSON.parse(localStorage.getItem('pedolab-wires') || '[]');   // [["mcu.3V3","adxl.VCC"],...]
 let pending = null;
@@ -70,13 +67,9 @@ function nets() {
 
 // ---------- 規則 ----------
 function check() {
-  const { same, netOf } = nets(); const out = [];
+  const { same, netOf } = nets(); const out = []; const ok = (m) => out.push(['ok', m]), bad = (m) => out.push(['bad', m]), warn = (m) => out.push(['warn', m]);
   const wiredTo = id => wires.filter(w => w.includes(id)).map(w => w[0] === id ? w[1] : w[0]);
-  const swPins = ['sw.A', 'sw.B'];
   const enDirect = wiredTo('mcu.EN');                                   // EN 直接接到哪些腳
-  const enToSw = enDirect.some(x => swPins.includes(x));
-  const swOther = swPins.filter(x => !enDirect.includes(x));           // 開關另一端
-  const enSwitch = enToSw && swOther.some(x => wiredTo(x).some(y => y !== 'mcu.EN' && PARTS.mcu.pins.some(pn => 'mcu.' + pn.id === y && pn.k === 'gnd') || y === 'bat.N' || y === 'adxl.GND' || y === 'buz.N')); const ok = (m) => out.push(['ok', m]), bad = (m) => out.push(['bad', m]), warn = (m) => out.push(['warn', m]);
   const isPower = id => ['mcu.3V3', 'mcu.5V', 'mcu.BATP', 'bat.P'].some(p => same(id, p)), isGnd = id => same(id, 'mcu.GND');
   // 1 短路
   if (same('mcu.3V3', 'mcu.GND') || same('mcu.5V', 'mcu.GND') || same('mcu.3V3', 'mcu.5V') || same('bat.P', 'bat.N')) bad('電源短路：3V3／5V／電池正極與 GND（或彼此）接在一起，一開機就會燒。');
@@ -86,11 +79,10 @@ function check() {
   const badSig = sigs.filter(s => isPower(s) || isGnd(s));
   if (badSig.length) bad(`GPIO 直接接到電源或 GND：${badSig.map(s => s.split('.')[1]).join('、')}。訊號腳不能這樣接。`);
   // 2b EN 腳
-  if (enDirect.some(x => x !== 'sw.A' && x !== 'sw.B' && (x.endsWith('.GND') || x === 'mcu.GND2' || x === 'bat.N' || x === 'buz.N' || x === 'mcu.BATN')))
-    bad('EN 直接接到 GND：ESP32 會一直被壓在重置狀態，永遠不會開機。要關機請經過開關。');
+  if (enDirect.some(x => x.endsWith('.GND') || x === 'mcu.GND2' || x === 'bat.N' || x === 'buz.N' || x === 'mcu.BATN'))
+    bad('EN 直接接到 GND：ESP32 會一直被壓在重置狀態，永遠不會開機。新版不接開關，關機走選單。');
   else if (enDirect.some(x => ['mcu.3V3', 'mcu.5V', 'mcu.BATP', 'bat.P'].includes(x))) warn('EN 接到電源：板上本來就有上拉，接了沒有作用。');
   else if (enDirect.some(x => sigs.includes(x))) bad('EN 接到 GPIO：重置腳不能當訊號線用。');
-  else if (enSwitch) warn('開關接在 EN 與 GND 之間（原作說明書方案）：關機時 ESP32 進重置、插 USB 仍能充電；但板上穩壓器、GY-291 的電源 LED 與仍在量測的 ADXL345 繼續耗電約 2～3 mA，1000 mAh 兩三週會放完。');
   // 3 共地
   const gnds = ['adxl.GND', 'buz.N', 'bat.N'];
   const notG = gnds.filter(g => !isGnd(g));
@@ -118,15 +110,10 @@ function check() {
   else if (same('buz.N', 'mcu.G25') && isGnd('buz.P')) warn('蜂鳴器正負接反：無源蜂鳴器仍會響，但習慣上 ＋ 接 GPIO。');
   else if (isPower('buz.P') || isPower('buz.N')) { bad('蜂鳴器直接接到電源，會一直耗電且無法由程式控制。'); buzzer = false; }
   else { const other = sigs.find(s => same('buz.P', s) && s !== 'mcu.G25'); bad(other ? `蜂鳴器接到 ${other.split('.')[1]}，但程式用的是 GPIO25，不會響。` : '蜂鳴器沒接好（＋ → GPIO25、− → GND）。'); buzzer = false; }
-  // 8 電池與開關
-  const swA = same('bat.P', 'sw.A') || same('bat.P', 'sw.B'), swB = same('mcu.BATP', 'sw.A') || same('mcu.BATP', 'sw.B');
-  const battDirect = wiredTo('bat.P').includes('mcu.BATP');
-  if (enSwitch && battDirect) ok('電池 ＋ 直接接電池座＋，由 EN–GND 開關關機（說明書方案）。');
-  else if (swA && swB && same('bat.P', 'mcu.BATP') && !enSwitch) ok('電池 ＋ → 開關 → 電池座＋（原作實物方案）：真正零耗電，但關機時插 USB 不會充到電池。');
-  else if (same('bat.P', 'mcu.BATP') && !(swA && swB)) warn('電池正極直接接電池座，開關沒有接在任何地方：能動，但無法關機。');
-  else if (!same('bat.P', 'mcu.BATP')) bad('電池正極沒有接到電池座＋。');
+  // 8 電池：紅黑線直接插 JST（新版不裝開關，關機走選單→深度睡眠）
+  if (same('bat.P', 'mcu.BATP')) ok('電池 ＋ → 電池座＋（不經開關）。'); else bad('電池正極沒有接到電池座＋。');
   if (same('bat.N', 'mcu.BATN') || isGnd('bat.N')) ok('電池 − → 電池座−。'); else bad('電池負極沒接到電池座−。');
-  if (isPower('mcu.BATN') ) bad('電池座− 接到電源，會短路。');
+  if (isPower('mcu.BATN')) bad('電池座− 接到電源，會短路。');
 
   state.accelOk = accel; state.buzzerOk = buzzer; state.checked = true;
   const allOk = !out.some(([t]) => t === 'bad');
@@ -137,10 +124,8 @@ function check() {
 
 document.getElementById('check').onclick = check;
 document.getElementById('clearwires').onclick = () => { wires = []; pending = null; save(); render(); document.getElementById('wres').textContent = '已清除。'; };
-document.getElementById('autowire2').onclick = () => { wires = [['mcu.3V3', 'adxl.VCC'], ['mcu.GND', 'adxl.GND'], ['mcu.G21', 'adxl.SDA'], ['mcu.G22', 'adxl.SCL'],
-  ['mcu.G25', 'buz.P'], ['mcu.GND2', 'buz.N'], ['mcu.EN', 'sw.A'], ['sw.B', 'mcu.GND2'], ['bat.P', 'mcu.BATP'], ['bat.N', 'mcu.BATN']]; save(); render(); check(); };
 document.getElementById('autowire').onclick = () => { wires = [['mcu.3V3', 'adxl.VCC'], ['mcu.GND', 'adxl.GND'], ['mcu.G21', 'adxl.SDA'], ['mcu.G22', 'adxl.SCL'],
-  ['mcu.G25', 'buz.P'], ['mcu.GND2', 'buz.N'], ['bat.P', 'sw.A'], ['sw.B', 'mcu.BATP'], ['bat.N', 'mcu.BATN']]; save(); render(); check(); };
+  ['mcu.G25', 'buz.P'], ['mcu.GND2', 'buz.N'], ['bat.P', 'mcu.BATP'], ['bat.N', 'mcu.BATN']]; save(); render(); check(); };
 if (wires.length) { render(); check(); } else render();
 return { state, render, check };
 })();

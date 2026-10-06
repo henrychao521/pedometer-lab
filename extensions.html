@@ -1,0 +1,854 @@
+<!DOCTYPE html><html lang="zh-Hant-TW"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>計步器延伸專案</title>
+<style>
+:root{--bg:#ecebe4;--ink:#1a1a18;--mute:#6a665c;--line:#cfcabd;--card:#fbfaf6;--cyan:#0a7f8c;--green:#2b8a3e;--orange:#c7640b}
+*{box-sizing:border-box}body{font-family:"Noto Sans TC","PingFang TC",system-ui,sans-serif;background:var(--bg);color:var(--ink);margin:0;padding:16px;max-width:1000px;margin:0 auto;line-height:1.7}
+header{display:flex;justify-content:space-between;align-items:baseline;border-bottom:3px solid var(--ink);padding-bottom:6px;margin-bottom:12px;flex-wrap:wrap;gap:8px}h1{font-size:1.3rem;margin:0}
+header a{color:var(--cyan)}nav{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:14px}nav a{padding:5px 10px;border:1.5px solid var(--ink);text-decoration:none;color:var(--ink);font-size:.9rem}
+section{background:var(--card);border:1px solid var(--line);padding:16px 18px;margin-bottom:14px}h2{font-size:1.1rem;margin:0 0 6px;color:var(--cyan)}h3{font-size:.9rem;color:var(--mute);margin:12px 0 4px;letter-spacing:.08em}
+.meta{display:flex;gap:10px;align-items:center;font-size:.85rem;margin-bottom:6px}.tag{border:1px solid var(--ink);padding:1px 8px}.ok{color:var(--green)}
+details{border:1px solid var(--line);margin:6px 0;background:#fff}summary{padding:8px 10px;cursor:pointer;font-size:.9rem}summary .n{color:var(--mute)}summary a{color:var(--cyan)}
+pre{margin:0;padding:12px;background:#14161a;color:#d9e6dc;font:12px/1.5 ui-monospace,Menlo,monospace;overflow:auto;max-height:70vh}
+.note{font-size:.85rem;color:var(--mute)}
+</style></head><body>
+<header><h1>計步器延伸專案</h1><a href="index.html">← 回模擬器</a></header>
+<p class="note">六個延伸專案，由淺到深。每個都附完整程式與驗證方式；「✓」是這份程式在整理時實際通過的檢查（編譯或單元測試），真機行為仍要自己燒進去確認。
+程式在專案資料夾 <code>firmware/extensions/</code>，這頁是同一份的瀏覽版，可直接下載。</p>
+<nav><a href="#dual_sensor_compare">A</a><a href="#sedentary">B</a><a href="#pedometer_stable">C</a><a href="#power_modes">D</a><a href="#pc_backend">E</a><a href="#mpu6050">F</a><a href="#cartridges">G</a></nav>
+<section id="dual_sensor_compare"><h2>A　雙感測器比對與校正：ADXL345 × MPU6050</h2>
+<div class="meta"><span class="tag">進階</span><span class="ok">✓ arduino-cli 編譯通過（310 KB）</span></div>
+<p>兩顆加速度計掛同一條 I2C（0x53／0x68），50 Hz 同步讀、各跑一份相同的計步演算法、按左鍵做六面校正；電腦端腳本算偏移、雜訊、相關係數、步數一致性並畫圖。</p>
+<h3>步驟</h3><ol><li>兩顆模組用雙面膠貼在同一塊小板上，軸向對齊；VCC→3V3、GND→GND、SDA→21、SCL→22；MPU6050 的 AD0 不接（0x68）。</li><li><code>make ext NAME=dual_sensor_compare</code> → <code>make flash-ext NAME=dual_sensor_compare PORT=…</code>。</li><li><code>python3 tools/compare_sensors.py /dev/cu.usbserial-XXXX --secs 60</code>：先靜置 10 秒、走 30 秒、再靜置。</li><li>要校正：在韌體端按左鍵，依序六面朝下各按一次，再收一次資料比對校正前後。</li></ol>
+<h3>程式</h3><details><summary><code>firmware/extensions/dual_sensor_compare/dual_sensor_compare.ino</code>　<a download="dual_sensor_compare.ino" href="data:text/plain;charset=utf-8;base64,Ly8g5bu25Ly45bCI5qGIIEHvvJrpm5nmhJ/muKzlmajmr5TlsI3vvIhBRFhMMzQ1IEAweDUzIO+8iyBNUFU2MDUwIEAweDY4IOaOm+WQjOS4gOainSBJMkPvvIkKLy8gNTAgSHog5ZCM5q2l6K6A5YWp6aGG77yM5bqP5YiX5Z+g6Ly45Ye6IENTVu+8m+WFqemhhuWQhOi3keS4gOS7veWQjOaoo+eahOioiOatpea8lOeul+azle+8m+aMieW3pumNteWBmuWFremdouagoeato+OAggovLyDmjqXnt5rvvJrlhanpoYbmqKHntYTnmoQgVkND4oaSM1Yz44CBR05E4oaSR05E44CBU0RB4oaSR1BJTzIx44CBU0NM4oaSR1BJTzIy77ybTVBVNjA1MCDnmoQgQUQwIOaOpSBHTkTvvIjmiJbkuI3mjqXvvInihpIg5L2N5Z2AIDB4NjjjgIIKLy8g5YWp6aGG5qih57WE6KuL55So6ZuZ6Z2i6Iag6LK85Zyo5ZCM5LiA5aGK5bCP5p2/5LiK77yMWC9ZL1og5pa55ZCR5LiA6Ie077yM5omN5q+U5b6X5Ye65beu55Ww44CCCi8vIOmbu+iFpuerr++8mnB5dGhvbjMgdG9vbHMvY29tcGFyZV9zZW5zb3JzLnB5IC9kZXYvY3UudXNic2VyaWFsLVhYWFgKI2luY2x1ZGUgPFdpcmUuaD4KI2luY2x1ZGUgInBlZG9tZXRlci5oIiAgICAgIC8vIOiIh+S4u+mfjOmrlOWQjOS4gOS7vea8lOeul+azle+8iE1ha2VmaWxlIOacg+ikh+ijvemAsuS+hu+8iQoKc3RhdGljIGNvbnN0IHVpbnQ4X3QgQURYTCA9IDB4NTMsIE1QVSA9IDB4Njg7CnN0YXRpYyBjb25zdCBpbnQgUElOX0JUTl9MID0gMCwgUElOX0JUTl9SID0gMzUsIFBJTl9TREEgPSAyMSwgUElOX1NDTCA9IDIyOwoKc3RydWN0IFZlYyB7IGZsb2F0IHgsIHksIHo7IH07CnN0cnVjdCBDYWwgeyBWZWMgb2ZmezAsIDAsIDB9OyBWZWMgZ2FpbnsxLCAxLCAxfTsgfTsgICAgIC8vIOagoeato++8mmFfY2FsID0gKGFfcmF3IOKIkiBvZmYpIMOXIGdhaW4Kc3RhdGljIENhbCBjYWwxLCBjYWwyOwpzdGF0aWMgUGVkb21ldGVyIHBlZG8xLCBwZWRvMjsKCnN0YXRpYyB2b2lkIHdyKHVpbnQ4X3QgYSwgdWludDhfdCByLCB1aW50OF90IHYpIHsgV2lyZS5iZWdpblRyYW5zbWlzc2lvbihhKTsgV2lyZS53cml0ZShyKTsgV2lyZS53cml0ZSh2KTsgV2lyZS5lbmRUcmFuc21pc3Npb24oKTsgfQpzdGF0aWMgYm9vbCByZCh1aW50OF90IGEsIHVpbnQ4X3QgciwgdWludDhfdCogYiwgdWludDhfdCBuKSB7CiAgV2lyZS5iZWdpblRyYW5zbWlzc2lvbihhKTsgV2lyZS53cml0ZShyKTsKICBpZiAoV2lyZS5lbmRUcmFuc21pc3Npb24oZmFsc2UpICE9IDApIHJldHVybiBmYWxzZTsKICByZXR1cm4gV2lyZS5yZXF1ZXN0RnJvbShhLCBuKSA9PSBuICYmIFsmXSB7IGZvciAodWludDhfdCBpID0gMDsgaSA8IG47IGkrKykgYltpXSA9IFdpcmUucmVhZCgpOyByZXR1cm4gdHJ1ZTsgfSgpOwp9CnN0YXRpYyBib29sIGFkeGxfYmVnaW4oKSB7CiAgdWludDhfdCBpZDsgaWYgKCFyZChBRFhMLCAweDAwLCAmaWQsIDEpIHx8IGlkICE9IDB4RTUpIHJldHVybiBmYWxzZTsKICB3cihBRFhMLCAweDJDLCAweDBBKTsgd3IoQURYTCwgMHgzMSwgMHgwOCk7IHdyKEFEWEwsIDB4MkQsIDB4MDgpOyAgLy8gMTAwIEh644CB5YWo6Kej5p6Q5bqmIMKxMmfjgIHph4/muKwKICByZXR1cm4gdHJ1ZTsKfQpzdGF0aWMgYm9vbCBtcHVfYmVnaW4oKSB7CiAgdWludDhfdCBpZDsgaWYgKCFyZChNUFUsIDB4NzUsICZpZCwgMSkgfHwgKGlkICE9IDB4NjggJiYgaWQgIT0gMHg3MCAmJiBpZCAhPSAweDcxKSkgcmV0dXJuIGZhbHNlOyAgLy8gV0hPX0FNX0nvvIg2MDUwPTB4NjjvvIw2NTAwLzkyNTAg55u45a6577yJCiAgd3IoTVBVLCAweDZCLCAweDAwKTsgICAvLyBQV1JfTUdNVF8x77ya5Zaa6YaSCiAgd3IoTVBVLCAweDFDLCAweDAwKTsgICAvLyBBQ0NFTF9DT05GSUfvvJrCsTJnIOKGkiAxNjM4NCBMU0IvZwogIHdyKE1QVSwgMHgxQSwgMHgwMyk7ICAgLy8gRExQRiDntIQgNDQgSHoKICByZXR1cm4gdHJ1ZTsKfQpzdGF0aWMgYm9vbCBhZHhsX3JlYWQoVmVjJiB2KSB7IHVpbnQ4X3QgYls2XTsgaWYgKCFyZChBRFhMLCAweDMyLCBiLCA2KSkgcmV0dXJuIGZhbHNlOwogIHYueCA9IChpbnQxNl90KShiWzBdIHwgYlsxXSA8PCA4KSAvIDI1Ni4wZjsgdi55ID0gKGludDE2X3QpKGJbMl0gfCBiWzNdIDw8IDgpIC8gMjU2LjBmOyB2LnogPSAoaW50MTZfdCkoYls0XSB8IGJbNV0gPDwgOCkgLyAyNTYuMGY7IHJldHVybiB0cnVlOyB9CnN0YXRpYyBib29sIG1wdV9yZWFkKFZlYyYgdikgeyB1aW50OF90IGJbNl07IGlmICghcmQoTVBVLCAweDNCLCBiLCA2KSkgcmV0dXJuIGZhbHNlOwogIHYueCA9IChpbnQxNl90KShiWzBdIDw8IDggfCBiWzFdKSAvIDE2Mzg0LjBmOyB2LnkgPSAoaW50MTZfdCkoYlsyXSA8PCA4IHwgYlszXSkgLyAxNjM4NC4wZjsgdi56ID0gKGludDE2X3QpKGJbNF0gPDwgOCB8IGJbNV0pIC8gMTYzODQuMGY7IHJldHVybiB0cnVlOyB9CnN0YXRpYyBWZWMgYXBwbHkoY29uc3QgVmVjJiBhLCBjb25zdCBDYWwmIGMpIHsgcmV0dXJuIHsgKGEueCAtIGMub2ZmLngpICogYy5nYWluLngsIChhLnkgLSBjLm9mZi55KSAqIGMuZ2Fpbi55LCAoYS56IC0gYy5vZmYueikgKiBjLmdhaW4ueiB9OyB9CgovLyDlha3pnaLmoKHmraPvvJrkvp3luo/miormnb/lrZDnmoQgK1jjgIHiiJJY44CBK1njgIHiiJJZ44CBK1rjgIHiiJJaIOacneS4i+mdnOe9ru+8jOavj+mdouaMieS4gOasoeW3pumNte+8jOWQhOWPliAxMDAg562G5bmz5Z2HCnN0YXRpYyB2b2lkIHNpeF9mYWNlX2NhbGlicmF0aW9uKCkgewogIGNvbnN0IGNoYXIqIGZhY2VzW10gPSB7ICIrWCDmnJ3kuIsiLCAiLVgg5pyd5LiLIiwgIitZIOacneS4iyIsICItWSDmnJ3kuIsiLCAiK1og5pyd5LiLIiwgIi1aIOacneS4iyIgfTsKICBWZWMgczFbNl0sIHMyWzZdOwogIGZvciAoaW50IGYgPSAwOyBmIDwgNjsgZisrKSB7CiAgICBTZXJpYWwucHJpbnRmKCIjIOagoeatoyAlZC8277ya6KuL5oqK5p2/5a2QICVzIOmdnOe9ru+8jOeEtuW+jOaMieW3pumNtVxuIiwgZiArIDEsIGZhY2VzW2ZdKTsKICAgIHdoaWxlIChkaWdpdGFsUmVhZChQSU5fQlROX0wpID09IEhJR0gpIGRlbGF5KDEwKTsKICAgIGRlbGF5KDMwMCk7CiAgICBWZWMgYXswLCAwLCAwfSwgYnswLCAwLCAwfTsgaW50IG4gPSAwOwogICAgZm9yIChpbnQgaSA9IDA7IGkgPCAxMDA7IGkrKykgeyBWZWMgdjEsIHYyOyBpZiAoYWR4bF9yZWFkKHYxKSAmJiBtcHVfcmVhZCh2MikpIHsgYS54ICs9IHYxLng7IGEueSArPSB2MS55OyBhLnogKz0gdjEuejsgYi54ICs9IHYyLng7IGIueSArPSB2Mi55OyBiLnogKz0gdjIuejsgbisrOyB9IGRlbGF5KDEwKTsgfQogICAgczFbZl0gPSB7IGEueCAvIG4sIGEueSAvIG4sIGEueiAvIG4gfTsgczJbZl0gPSB7IGIueCAvIG4sIGIueSAvIG4sIGIueiAvIG4gfTsKICAgIHdoaWxlIChkaWdpdGFsUmVhZChQSU5fQlROX0wpID09IExPVykgZGVsYXkoMTApOwogIH0KICBhdXRvIGZpdCA9IFtdKFZlYyogcywgQ2FsJiBjKSB7ICAgLy8g5q+P6Lu477ya5pyA5aSn6IiH5pyA5bCP55qE5bmz5Z2H5piv5YGP56e777yM5beu5YC855qE5LiA5Y2K5pivIDEgZyDnmoTliLvluqYKICAgIGZsb2F0IHhzWzJdID0geyBzWzBdLngsIHNbMV0ueCB9LCB5c1syXSA9IHsgc1syXS55LCBzWzNdLnkgfSwgenNbMl0gPSB7IHNbNF0ueiwgc1s1XS56IH07CiAgICBhdXRvIG9uZSA9IFtdKGZsb2F0IHAsIGZsb2F0IG0sIGZsb2F0JiBvZmYsIGZsb2F0JiBnKSB7IG9mZiA9IChwICsgbSkgLyAyOyBnID0gMi4wZiAvIGZhYnNmKHAgLSBtKTsgfTsKICAgIG9uZSh4c1swXSwgeHNbMV0sIGMub2ZmLngsIGMuZ2Fpbi54KTsgb25lKHlzWzBdLCB5c1sxXSwgYy5vZmYueSwgYy5nYWluLnkpOyBvbmUoenNbMF0sIHpzWzFdLCBjLm9mZi56LCBjLmdhaW4ueik7CiAgfTsKICBmaXQoczEsIGNhbDEpOyBmaXQoczIsIGNhbDIpOwogIFNlcmlhbC5wcmludGYoIiMgQ0FMIEFEWEwzNDUgb2ZmPSUuNGYsJS40ZiwlLjRmIGdhaW49JS40ZiwlLjRmLCUuNGZcbiIsIGNhbDEub2ZmLngsIGNhbDEub2ZmLnksIGNhbDEub2ZmLnosIGNhbDEuZ2Fpbi54LCBjYWwxLmdhaW4ueSwgY2FsMS5nYWluLnopOwogIFNlcmlhbC5wcmludGYoIiMgQ0FMIE1QVTYwNTAgb2ZmPSUuNGYsJS40ZiwlLjRmIGdhaW49JS40ZiwlLjRmLCUuNGZcbiIsIGNhbDIub2ZmLngsIGNhbDIub2ZmLnksIGNhbDIub2ZmLnosIGNhbDIuZ2Fpbi54LCBjYWwyLmdhaW4ueSwgY2FsMi5nYWluLnopOwogIFNlcmlhbC5wcmludGxuKCIjIOagoeato+WujOaIkO+8jOe5vOe6jOi8uOWHuiBDU1bvvIjlt7LlpZfnlKjmoKHmraPvvIkiKTsKfQoKdm9pZCBzZXR1cCgpIHsKICBTZXJpYWwuYmVnaW4oMTE1MjAwKTsgZGVsYXkoMjAwKTsKICBwaW5Nb2RlKFBJTl9CVE5fTCwgSU5QVVRfUFVMTFVQKTsgcGluTW9kZShQSU5fQlROX1IsIElOUFVUKTsKICBXaXJlLmJlZ2luKFBJTl9TREEsIFBJTl9TQ0wsIDQwMDAwMCk7CiAgYm9vbCBhID0gYWR4bF9iZWdpbigpLCBtID0gbXB1X2JlZ2luKCk7CiAgU2VyaWFsLnByaW50ZigiIyBBRFhMMzQ1ICVzIC8gTVBVNjA1MCAlc1xuIiwgYSA/ICJPSyIgOiAi5om+5LiN5YiwIiwgbSA/ICJPSyIgOiAi5om+5LiN5YiwIik7CiAgU2VyaWFsLnByaW50bG4oIiMg5bem6Y2177ya5YWt6Z2i5qCh5q2j44CA5Y+z6Y2177ya5YWp6aGG5q2l5pW45q246Zu2Iik7CiAgU2VyaWFsLnByaW50bG4oInRfbXMsYTF4LGExeSxhMXosYTJ4LGEyeSxhMnosc3RlcHMxLHN0ZXBzMiIpOwogIHBlZG8xLmJlZ2luKDApOyBwZWRvMi5iZWdpbigwKTsKfQoKdm9pZCBsb29wKCkgewogIHN0YXRpYyB1aW50MzJfdCBuZXh0ID0gMDsgdWludDMyX3Qgbm93ID0gbWlsbGlzKCk7CiAgaWYgKGRpZ2l0YWxSZWFkKFBJTl9CVE5fTCkgPT0gTE9XKSB7IHdoaWxlIChkaWdpdGFsUmVhZChQSU5fQlROX0wpID09IExPVykgZGVsYXkoMTApOyBzaXhfZmFjZV9jYWxpYnJhdGlvbigpOyB9CiAgaWYgKGRpZ2l0YWxSZWFkKFBJTl9CVE5fUikgPT0gTE9XKSB7IHBlZG8xLnJlc2V0KCk7IHBlZG8yLnJlc2V0KCk7IFNlcmlhbC5wcmludGxuKCIjIOatpeaVuOatuOmbtiIpOyBkZWxheSgzMDApOyB9CiAgaWYgKG5vdyA8IG5leHQpIHJldHVybjsgbmV4dCA9IG5vdyArIDIwOyAgICAgICAgICAgICAgICAgICAgICAgICAvLyA1MCBIegogIFZlYyByMSwgcjI7IGlmICghYWR4bF9yZWFkKHIxKSB8fCAhbXB1X3JlYWQocjIpKSByZXR1cm47CiAgVmVjIHYxID0gYXBwbHkocjEsIGNhbDEpLCB2MiA9IGFwcGx5KHIyLCBjYWwyKTsKICBwZWRvMS5mZWVkKHYxLngsIHYxLnksIHYxLnosIG5vdyk7IHBlZG8yLmZlZWQodjIueCwgdjIueSwgdjIueiwgbm93KTsKICBTZXJpYWwucHJpbnRmKCIldSwlLjRmLCUuNGYsJS40ZiwlLjRmLCUuNGYsJS40ZiwldSwldVxuIiwgbm93LCB2MS54LCB2MS55LCB2MS56LCB2Mi54LCB2Mi55LCB2Mi56LCBwZWRvMS5zdGVwcygpLCBwZWRvMi5zdGVwcygpKTsKfQo=">下載</a>　<span class="n">85 行</span></summary><pre>// 延伸專案 A：雙感測器比對（ADXL345 @0x53 ＋ MPU6050 @0x68 掛同一條 I2C）
+// 50 Hz 同步讀兩顆，序列埠輸出 CSV；兩顆各跑一份同樣的計步演算法；按左鍵做六面校正。
+// 接線：兩顆模組的 VCC→3V3、GND→GND、SDA→GPIO21、SCL→GPIO22；MPU6050 的 AD0 接 GND（或不接）→ 位址 0x68。
+// 兩顆模組請用雙面膠貼在同一塊小板上，X/Y/Z 方向一致，才比得出差異。
+// 電腦端：python3 tools/compare_sensors.py /dev/cu.usbserial-XXXX
+#include &lt;Wire.h&gt;
+#include &quot;pedometer.h&quot;      // 與主韌體同一份演算法（Makefile 會複製進來）
+
+static const uint8_t ADXL = 0x53, MPU = 0x68;
+static const int PIN_BTN_L = 0, PIN_BTN_R = 35, PIN_SDA = 21, PIN_SCL = 22;
+
+struct Vec { float x, y, z; };
+struct Cal { Vec off{0, 0, 0}; Vec gain{1, 1, 1}; };     // 校正：a_cal = (a_raw − off) × gain
+static Cal cal1, cal2;
+static Pedometer pedo1, pedo2;
+
+static void wr(uint8_t a, uint8_t r, uint8_t v) { Wire.beginTransmission(a); Wire.write(r); Wire.write(v); Wire.endTransmission(); }
+static bool rd(uint8_t a, uint8_t r, uint8_t* b, uint8_t n) {
+  Wire.beginTransmission(a); Wire.write(r);
+  if (Wire.endTransmission(false) != 0) return false;
+  return Wire.requestFrom(a, n) == n &amp;&amp; [&amp;] { for (uint8_t i = 0; i &lt; n; i++) b[i] = Wire.read(); return true; }();
+}
+static bool adxl_begin() {
+  uint8_t id; if (!rd(ADXL, 0x00, &amp;id, 1) || id != 0xE5) return false;
+  wr(ADXL, 0x2C, 0x0A); wr(ADXL, 0x31, 0x08); wr(ADXL, 0x2D, 0x08);  // 100 Hz、全解析度 ±2g、量測
+  return true;
+}
+static bool mpu_begin() {
+  uint8_t id; if (!rd(MPU, 0x75, &amp;id, 1) || (id != 0x68 &amp;&amp; id != 0x70 &amp;&amp; id != 0x71)) return false;  // WHO_AM_I（6050=0x68，6500/9250 相容）
+  wr(MPU, 0x6B, 0x00);   // PWR_MGMT_1：喚醒
+  wr(MPU, 0x1C, 0x00);   // ACCEL_CONFIG：±2g → 16384 LSB/g
+  wr(MPU, 0x1A, 0x03);   // DLPF 約 44 Hz
+  return true;
+}
+static bool adxl_read(Vec&amp; v) { uint8_t b[6]; if (!rd(ADXL, 0x32, b, 6)) return false;
+  v.x = (int16_t)(b[0] | b[1] &lt;&lt; 8) / 256.0f; v.y = (int16_t)(b[2] | b[3] &lt;&lt; 8) / 256.0f; v.z = (int16_t)(b[4] | b[5] &lt;&lt; 8) / 256.0f; return true; }
+static bool mpu_read(Vec&amp; v) { uint8_t b[6]; if (!rd(MPU, 0x3B, b, 6)) return false;
+  v.x = (int16_t)(b[0] &lt;&lt; 8 | b[1]) / 16384.0f; v.y = (int16_t)(b[2] &lt;&lt; 8 | b[3]) / 16384.0f; v.z = (int16_t)(b[4] &lt;&lt; 8 | b[5]) / 16384.0f; return true; }
+static Vec apply(const Vec&amp; a, const Cal&amp; c) { return { (a.x - c.off.x) * c.gain.x, (a.y - c.off.y) * c.gain.y, (a.z - c.off.z) * c.gain.z }; }
+
+// 六面校正：依序把板子的 +X、−X、+Y、−Y、+Z、−Z 朝下靜置，每面按一次左鍵，各取 100 筆平均
+static void six_face_calibration() {
+  const char* faces[] = { &quot;+X 朝下&quot;, &quot;-X 朝下&quot;, &quot;+Y 朝下&quot;, &quot;-Y 朝下&quot;, &quot;+Z 朝下&quot;, &quot;-Z 朝下&quot; };
+  Vec s1[6], s2[6];
+  for (int f = 0; f &lt; 6; f++) {
+    Serial.printf(&quot;# 校正 %d/6：請把板子 %s 靜置，然後按左鍵\n&quot;, f + 1, faces[f]);
+    while (digitalRead(PIN_BTN_L) == HIGH) delay(10);
+    delay(300);
+    Vec a{0, 0, 0}, b{0, 0, 0}; int n = 0;
+    for (int i = 0; i &lt; 100; i++) { Vec v1, v2; if (adxl_read(v1) &amp;&amp; mpu_read(v2)) { a.x += v1.x; a.y += v1.y; a.z += v1.z; b.x += v2.x; b.y += v2.y; b.z += v2.z; n++; } delay(10); }
+    s1[f] = { a.x / n, a.y / n, a.z / n }; s2[f] = { b.x / n, b.y / n, b.z / n };
+    while (digitalRead(PIN_BTN_L) == LOW) delay(10);
+  }
+  auto fit = [](Vec* s, Cal&amp; c) {   // 每軸：最大與最小的平均是偏移，差值的一半是 1 g 的刻度
+    float xs[2] = { s[0].x, s[1].x }, ys[2] = { s[2].y, s[3].y }, zs[2] = { s[4].z, s[5].z };
+    auto one = [](float p, float m, float&amp; off, float&amp; g) { off = (p + m) / 2; g = 2.0f / fabsf(p - m); };
+    one(xs[0], xs[1], c.off.x, c.gain.x); one(ys[0], ys[1], c.off.y, c.gain.y); one(zs[0], zs[1], c.off.z, c.gain.z);
+  };
+  fit(s1, cal1); fit(s2, cal2);
+  Serial.printf(&quot;# CAL ADXL345 off=%.4f,%.4f,%.4f gain=%.4f,%.4f,%.4f\n&quot;, cal1.off.x, cal1.off.y, cal1.off.z, cal1.gain.x, cal1.gain.y, cal1.gain.z);
+  Serial.printf(&quot;# CAL MPU6050 off=%.4f,%.4f,%.4f gain=%.4f,%.4f,%.4f\n&quot;, cal2.off.x, cal2.off.y, cal2.off.z, cal2.gain.x, cal2.gain.y, cal2.gain.z);
+  Serial.println(&quot;# 校正完成，繼續輸出 CSV（已套用校正）&quot;);
+}
+
+void setup() {
+  Serial.begin(115200); delay(200);
+  pinMode(PIN_BTN_L, INPUT_PULLUP); pinMode(PIN_BTN_R, INPUT);
+  Wire.begin(PIN_SDA, PIN_SCL, 400000);
+  bool a = adxl_begin(), m = mpu_begin();
+  Serial.printf(&quot;# ADXL345 %s / MPU6050 %s\n&quot;, a ? &quot;OK&quot; : &quot;找不到&quot;, m ? &quot;OK&quot; : &quot;找不到&quot;);
+  Serial.println(&quot;# 左鍵：六面校正　右鍵：兩顆步數歸零&quot;);
+  Serial.println(&quot;t_ms,a1x,a1y,a1z,a2x,a2y,a2z,steps1,steps2&quot;);
+  pedo1.begin(0); pedo2.begin(0);
+}
+
+void loop() {
+  static uint32_t next = 0; uint32_t now = millis();
+  if (digitalRead(PIN_BTN_L) == LOW) { while (digitalRead(PIN_BTN_L) == LOW) delay(10); six_face_calibration(); }
+  if (digitalRead(PIN_BTN_R) == LOW) { pedo1.reset(); pedo2.reset(); Serial.println(&quot;# 步數歸零&quot;); delay(300); }
+  if (now &lt; next) return; next = now + 20;                         // 50 Hz
+  Vec r1, r2; if (!adxl_read(r1) || !mpu_read(r2)) return;
+  Vec v1 = apply(r1, cal1), v2 = apply(r2, cal2);
+  pedo1.feed(v1.x, v1.y, v1.z, now); pedo2.feed(v2.x, v2.y, v2.z, now);
+  Serial.printf(&quot;%u,%.4f,%.4f,%.4f,%.4f,%.4f,%.4f,%u,%u\n&quot;, now, v1.x, v1.y, v1.z, v2.x, v2.y, v2.z, pedo1.steps(), pedo2.steps());
+}
+</pre></details><details><summary><code>tools/compare_sensors.py</code>　<a download="compare_sensors.py" href="data:text/plain;charset=utf-8;base64,IyEvdXNyL2Jpbi9lbnYgcHl0aG9uMwoiIiLpm5nmhJ/muKzlmajmr5TlsI3vvJroroAgZHVhbF9zZW5zb3JfY29tcGFyZSDpn4zpq5TnmoTluo/liJfln6AgQ1NW77yM55Si5Ye65q+U5bCN5aCx5ZGK6IiH5ZyW44CCCueUqOazle+8mgogIHB5dGhvbjMgdG9vbHMvY29tcGFyZV9zZW5zb3JzLnB5IC9kZXYvY3UudXNic2VyaWFsLVhYWFggLS1zZWNzIDYwIC0tb3V0IGJ1aWxkL2NvbXBhcmUgICAjIOePvuWgtOaUtiA2MCDnp5IKICBweXRob24zIHRvb2xzL2NvbXBhcmVfc2Vuc29ycy5weSBidWlsZC9jb21wYXJlL3Jhdy5jc3YgLS1vdXQgYnVpbGQvY29tcGFyZSAgICAgICAgICAgICAjIOWIhuaekOaXouacieaqlArlu7rorbDmtYHnqIvvvJrlhYjpnZznva4gMTAg56eS77yI6YeP6Zuc6KiK6IiH5YGP56e777yJ4oaSIOi1sCAzMCDnp5Ig4oaSIOmdnOe9riA1IOenkuOAguagoeato+iri+WcqOmfjOmrlOerr+aMieW3pumNteWBmuWFremdouagoeato+W+jOWGjeaUtuOAgiIiIgppbXBvcnQgc3lzLCB0aW1lLCBjc3YsIG1hdGgsIGFyZ3BhcnNlLCBvcywgc3RhdGlzdGljcyBhcyBzdAoKYXAgPSBhcmdwYXJzZS5Bcmd1bWVudFBhcnNlcigpOyBhcC5hZGRfYXJndW1lbnQoJ3NyYycpOyBhcC5hZGRfYXJndW1lbnQoJy0tc2VjcycsIHR5cGU9ZmxvYXQsIGRlZmF1bHQ9NjApOyBhcC5hZGRfYXJndW1lbnQoJy0tb3V0JywgZGVmYXVsdD0nYnVpbGQvY29tcGFyZScpCmEgPSBhcC5wYXJzZV9hcmdzKCk7IG9zLm1ha2VkaXJzKGEub3V0LCBleGlzdF9vaz1UcnVlKQpyb3dzLCBub3RlcyA9IFtdLCBbXQppZiBhLnNyYy5zdGFydHN3aXRoKCcvZGV2LycpOgogICAgaW1wb3J0IHNlcmlhbAogICAgcyA9IHNlcmlhbC5TZXJpYWwoYS5zcmMsIDExNTIwMCwgdGltZW91dD0xKTsgdDAgPSB0aW1lLnRpbWUoKTsgcmF3ID0gb3Blbihvcy5wYXRoLmpvaW4oYS5vdXQsICdyYXcuY3N2JyksICd3JykKICAgIHByaW50KGYn5pS2IHthLnNlY3M6LjBmfSDnp5LigKbvvIhDdHJsLUMg5o+Q5pep57WQ5p2f77yJJykKICAgIHRyeToKICAgICAgICB3aGlsZSB0aW1lLnRpbWUoKSAtIHQwIDwgYS5zZWNzOgogICAgICAgICAgICBsaW5lID0gcy5yZWFkbGluZSgpLmRlY29kZSgndXRmLTgnLCAncmVwbGFjZScpLnN0cmlwKCkKICAgICAgICAgICAgaWYgbm90IGxpbmU6IGNvbnRpbnVlCiAgICAgICAgICAgIGlmIGxpbmUuc3RhcnRzd2l0aCgnIycpOiBub3Rlcy5hcHBlbmQobGluZSk7IHByaW50KGxpbmUpOyBjb250aW51ZQogICAgICAgICAgICByYXcud3JpdGUobGluZSArICdcbicpOyBwID0gbGluZS5zcGxpdCgnLCcpCiAgICAgICAgICAgIGlmIGxlbihwKSA9PSA5IGFuZCBwWzBdLmlzZGlnaXQoKTogcm93cy5hcHBlbmQoW2Zsb2F0KHgpIGZvciB4IGluIHBdKQogICAgZXhjZXB0IEtleWJvYXJkSW50ZXJydXB0OiBwYXNzCiAgICByYXcuY2xvc2UoKQplbHNlOgogICAgZm9yIGxpbmUgaW4gb3BlbihhLnNyYyk6CiAgICAgICAgaWYgbGluZS5zdGFydHN3aXRoKCcjJykgb3IgbGluZS5zdGFydHN3aXRoKCd0X21zJyk6IGNvbnRpbnVlCiAgICAgICAgcCA9IGxpbmUuc3RyaXAoKS5zcGxpdCgnLCcpCiAgICAgICAgaWYgbGVuKHApID09IDk6IHJvd3MuYXBwZW5kKFtmbG9hdCh4KSBmb3IgeCBpbiBwXSkKaWYgbGVuKHJvd3MpIDwgMTAwOiBzeXMuZXhpdChmJ+izh+aWmeWkquWwke+8iHtsZW4ocm93cyl9IOethu+8iScpCgp0ID0gW3JbMF0gLyAxMDAwIGZvciByIGluIHJvd3NdCmExID0gWyhyWzFdLCByWzJdLCByWzNdKSBmb3IgciBpbiByb3dzXTsgYTIgPSBbKHJbNF0sIHJbNV0sIHJbNl0pIGZvciByIGluIHJvd3NdCm1hZyA9IGxhbWJkYSB2OiBtYXRoLnNxcnQodlswXSAqKiAyICsgdlsxXSAqKiAyICsgdlsyXSAqKiAyKQptMSA9IFttYWcodikgZm9yIHYgaW4gYTFdOyBtMiA9IFttYWcodikgZm9yIHYgaW4gYTJdCiMg6Z2c5q2i5q6177ya55SoIHxhfCDnmoQgMSDnp5Lmu5Hli5XmqJnmupblt64gPCAwLjAyIGcg5Yik5a6aCndpbiA9IDUwOyBzdGlsbCA9IFtGYWxzZV0gKiBsZW4ocm93cykKZm9yIGkgaW4gcmFuZ2Uod2luLCBsZW4ocm93cykpOgogICAgaWYgc3QucHN0ZGV2KG0xW2kgLSB3aW46aV0pIDwgMC4wMiBhbmQgc3QucHN0ZGV2KG0yW2kgLSB3aW46aV0pIDwgMC4wMjogc3RpbGxbaV0gPSBUcnVlCmlkeF9zdGlsbCA9IFtpIGZvciBpIGluIHJhbmdlKGxlbihyb3dzKSkgaWYgc3RpbGxbaV1dOyBpZHhfbW92ZSA9IFtpIGZvciBpIGluIHJhbmdlKGxlbihyb3dzKSkgaWYgbm90IHN0aWxsW2ldIGFuZCBpID49IHdpbl0KZGVmIHN0YXRzKGlkeCwgbSwgYSk6CiAgICBpZiBsZW4oaWR4KSA8IDIwOiByZXR1cm4gTm9uZQogICAgcmV0dXJuIHsgJ21hZ19tZWFuJzogc3QubWVhbihtW2ldIGZvciBpIGluIGlkeCksICdtYWdfc3RkJzogc3QucHN0ZGV2KG1baV0gZm9yIGkgaW4gaWR4KSwKICAgICAgICAgICAgICdheGlzX21lYW4nOiB0dXBsZShzdC5tZWFuKGFbaV1ba10gZm9yIGkgaW4gaWR4KSBmb3IgayBpbiByYW5nZSgzKSksCiAgICAgICAgICAgICAnYXhpc19zdGQnOiB0dXBsZShzdC5wc3RkZXYoYVtpXVtrXSBmb3IgaSBpbiBpZHgpIGZvciBrIGluIHJhbmdlKDMpKSB9CnMxLCBzMiA9IHN0YXRzKGlkeF9zdGlsbCwgbTEsIGExKSwgc3RhdHMoaWR4X3N0aWxsLCBtMiwgYTIpCiMg5YuV5oWL5q6177ya5Y675bmz5Z2H5b6M55qE55u46Zec5L+C5pW46IiH5aKe55uK5q+UCmRlZiBjb3JyX2dhaW4oaWR4KToKICAgIGlmIGxlbihpZHgpIDwgNTA6IHJldHVybiBOb25lLCBOb25lCiAgICB4ID0gW20xW2ldIGZvciBpIGluIGlkeF07IHkgPSBbbTJbaV0gZm9yIGkgaW4gaWR4XTsgbXgsIG15ID0gc3QubWVhbih4KSwgc3QubWVhbih5KQogICAgc3h5ID0gc3VtKCh4aSAtIG14KSAqICh5aSAtIG15KSBmb3IgeGksIHlpIGluIHppcCh4LCB5KSk7IHN4eCA9IHN1bSgoeGkgLSBteCkgKiogMiBmb3IgeGkgaW4geCk7IHN5eSA9IHN1bSgoeWkgLSBteSkgKiogMiBmb3IgeWkgaW4geSkKICAgIHJldHVybiAoc3h5IC8gbWF0aC5zcXJ0KHN4eCAqIHN5eSkgaWYgc3h4IGFuZCBzeXkgZWxzZSBOb25lKSwgKG1hdGguc3FydChzeXkgLyBzeHgpIGlmIHN4eCBlbHNlIE5vbmUpCmNvcnIsIGdhaW4gPSBjb3JyX2dhaW4oaWR4X21vdmUpCnN0ZXBzMSwgc3RlcHMyID0gaW50KHJvd3NbLTFdWzddKSwgaW50KHJvd3NbLTFdWzhdKQpmcyA9IGxlbihyb3dzKSAvICh0Wy0xXSAtIHRbMF0pIGlmIHRbLTFdID4gdFswXSBlbHNlIDAKCkwgPSBbXQpMLmFwcGVuZChmJyMg6ZuZ5oSf5ris5Zmo5q+U5bCN5aCx5ZGK44CAe3RpbWUuc3RyZnRpbWUoIiVZLSVtLSVkICVIOiVNIil9JykKTC5hcHBlbmQoZifmqKPmnKwge2xlbihyb3dzKX0g562G77yMe3RbLTFdLXRbMF06LjFmfSDnp5LvvIzlr6bpmpvlj5bmqKPnjocge2ZzOi4xZn0gSHrvvJvpnZzmraLmrrUge2xlbihpZHhfc3RpbGwpLzUwOi4xZn0g56eS44CB6YGL5YuV5q61IHtsZW4oaWR4X21vdmUpLzUwOi4xZn0g56eSJykKZm9yIG4gaW4gbm90ZXM6IEwuYXBwZW5kKG4pCkwuYXBwZW5kKCdcbiMjIOmdnOatouaZgu+8iOWBj+enu+iIh+mbnOioiu+8iScpCkwuYXBwZW5kKCd8IOmgheebriB8IEFEWEwzNDUgfCBNUFU2MDUwIHwg6Kej6K6AIHwnKTsgTC5hcHBlbmQoJ3wtLS18LS0tfC0tLXwtLS18JykKaWYgczEgYW5kIHMyOgogICAgTC5hcHBlbmQoZid8IOWQiOaIkOWKoOmAn+W6puW5s+Wdh++8iOaHieeCuiAxLjAwMCBn77yJIHwge3MxWyJtYWdfbWVhbiJdOi40Zn0gfCB7czJbIm1hZ19tZWFuIl06LjRmfSB8IOWBj+mboiAxIGcg55qE6YeP77yd5pW06auU5Yi75bqm77yP5YGP56e76Kqk5beu77yb5qCh5q2j5b6M5oeJIDwgMC4wMSB8JykKICAgIEwuYXBwZW5kKGYnfCDlkIjmiJDliqDpgJ/luqbpm5zoqIrvvIjmqJnmupblt67vvIkgfCB7czFbIm1hZ19zdGQiXSoxMDAwOi4xZn0gbWcgfCB7czJbIm1hZ19zdGQiXSoxMDAwOi4xZn0gbWcgfCDotorlsI/otorkub7mt6jvvJvmsbrlrprploDmqrvog73oqK3lpJrkvY4gfCcpCiAgICBMLmFwcGVuZChmJ3wg5ZCE6Lu46Zuc6KiKIFjvvI9Z77yPWiB8IHsi77yPIi5qb2luKGYie3YqMTAwMDouMWZ9IiBmb3IgdiBpbiBzMVsiYXhpc19zdGQiXSl9IG1nIHwgeyLvvI8iLmpvaW4oZiJ7dioxMDAwOi4xZn0iIGZvciB2IGluIHMyWyJheGlzX3N0ZCJdKX0gbWcgfCB8JykKICAgIEwuYXBwZW5kKGYnfCDlkITou7jlubPlnYcgWO+8j1nvvI9aIHwgeyLvvI8iLmpvaW4oZiJ7djorLjNmfSIgZm9yIHYgaW4gczFbImF4aXNfbWVhbiJdKX0gfCB7Iu+8jyIuam9pbihmInt2OisuM2Z9IiBmb3IgdiBpbiBzMlsiYXhpc19tZWFuIl0pfSB8IOWFqemhhuiLpeiyvOm9iu+8jOaVuOWtl+aHieaOpei/ke+8m+W3rueVsO+8neWuieijneinkuW6puaIluWBj+enuyB8JykKZWxzZTogTC5hcHBlbmQoJ3wg77yI6Z2c5q2i5q615LiN6LazIDEg56eS77yM54Sh5rOV57Wx6KiI77yJIHwgfCB8IHwnKQpMLmFwcGVuZCgnXG4jIyDpgYvli5XmmYLvvIjkuIDoh7TmgKfvvIknKQpMLmFwcGVuZCgnfCDpoIXnm64gfCDmlbjlgLwgfCDop6PoroAgfCcpOyBMLmFwcGVuZCgnfC0tLXwtLS18LS0tfCcpCkwuYXBwZW5kKGYnfCDlhanpoYYgXFx8YVxcfCDms6LlvaLnm7jpl5zkv4LmlbggfCB7Y29ycjouM2Z9IHwgPiAwLjk1IOihqOekuuWFqemhhueci+WIsOWQjOS4gOWAi+WLleS9nCB8JyBpZiBjb3JyIGlzIG5vdCBOb25lIGVsc2UgJ3wg55u46Zec5L+C5pW4IHwg77yI6YGL5YuV5q615LiN6Laz77yJIHwgfCcpCkwuYXBwZW5kKGYnfCDlop7nm4rmr5QgTVBVNjA1MO+8j0FEWEwzNDUgfCB7Z2FpbjouM2Z9IHwg5YGP6ZuiIDEg55qE6YeP77yd5Yi75bqm5beuIHwnIGlmIGdhaW4gaXMgbm90IE5vbmUgZWxzZSAnfCDlop7nm4rmr5QgfCDvvIjpgYvli5XmrrXkuI3otrPvvIkgfCB8JykKTC5hcHBlbmQoZid8IOatpeaVuCBBRFhMMzQ177yPTVBVNjA1MCB8IHtzdGVwczF977yPe3N0ZXBzMn0gfCDlt67nlbAge2FicyhzdGVwczEtc3RlcHMyKX0g5q2l77yIe2FicyhzdGVwczEtc3RlcHMyKS9tYXgoMSxtYXgoc3RlcHMxLHN0ZXBzMikpKjEwMDouMWZ9Je+8ie+8m+WQjOS4gOa8lOeul+azleOAgeWQjOS4gOmWgOaquyB8JykKTC5hcHBlbmQoJ1xuIyMg5oCO6bq86K6A6YCZ5Lu95aCx5ZGKJykKTC5hcHBlbmQoJy0g6Z2c5q2i5pmCIHxhfCDkuI3mmK8gMS4wMDDvvJrlhYjlgZrlha3pnaLmoKHmraPvvIjpn4zpq5TmjInlt6bpjbXvvInvvIzmoKHmraPlvozlgY/np7vmh4nmlLbmloLliLAgMC4wMSBnIOS7peWFp+OAgicpCkwuYXBwZW5kKCctIOmbnOioiu+8mkFEWEwzNDXvvIgxMyBiaXTjgIEzLjkgbWcv5qC877yJ6YCa5bi45q+UIE1QVTYwNTDvvIgxNiBiaXTvvInnspfvvIzkvYbotbDot6/oqIromZ8gwrEwLjMgZyDpgaDlpKfmlrzlhanogIXpm5zoqIrvvIzlsI3oqIjmraXlvbHpn7/kuI3lpKfjgIInKQpMLmFwcGVuZCgnLSDnm7jpl5zkv4Lmlbjpq5jkvYbmraXmlbjkuI3lkIzvvJrlt67lnKjploDmqrvpmYTov5HnmoTpgornt6Pls7DlgLzvvJvmiorploDmqrvlvp4gMC4xMiBnIOiqv+WIsCAwLjE1IGcg5YaN5q+U5LiA5qyh44CCJykKTC5hcHBlbmQoJy0g55u46Zec5L+C5pW45L2O77ya5YWp6aGG5rKS6LK854mi44CB5oiW6Lu45ZCR5rKS5bCN6b2K77yIfGF8IOS4jeWPl+i7uOWQkeW9semfv++8jOaJgOS7peWkmuWNiuaYr+aykuiyvOeJou+8ieOAgicpCm9wZW4ob3MucGF0aC5qb2luKGEub3V0LCAncmVwb3J0Lm1kJyksICd3Jykud3JpdGUoJ1xuJy5qb2luKEwpICsgJ1xuJyk7IHByaW50KCdcbicuam9pbihMKSkKdHJ5OgogICAgaW1wb3J0IG1hdHBsb3RsaWI7IG1hdHBsb3RsaWIudXNlKCdBZ2cnKTsgaW1wb3J0IG1hdHBsb3RsaWIucHlwbG90IGFzIHBsdAogICAgcGx0LnJjUGFyYW1zWydmb250LmZhbWlseSddID0gWydQaW5nRmFuZyBISycsICdIZWl0aSBUQyddOyBwbHQucmNQYXJhbXNbJ2F4ZXMudW5pY29kZV9taW51cyddID0gRmFsc2UKICAgIGZpZywgYXggPSBwbHQuc3VicGxvdHMoMiwgMSwgZmlnc2l6ZT0oMTEsIDYpLCBzaGFyZXg9VHJ1ZSkKICAgIGF4WzBdLnBsb3QodCwgbTEsIGx3PS44LCBsYWJlbD0nQURYTDM0NScpOyBheFswXS5wbG90KHQsIG0yLCBsdz0uOCwgbGFiZWw9J01QVTYwNTAnLCBhbHBoYT0uOCk7IGF4WzBdLnNldF95bGFiZWwoJ3xhfO+8iGfvvIknKTsgYXhbMF0ubGVnZW5kKGZyYW1lb249RmFsc2UpCiAgICBheFswXS5zZXRfdGl0bGUoJ+WFqemhhuaEn+a4rOWZqOeahOWQiOaIkOWKoOmAn+W6pu+8iOiyvOWcqOS4gOi1t+aZguaHieW5vuS5jumHjeeWiu+8iScsIGxvYz0nbGVmdCcpCiAgICBheFsxXS5zdGVwKHQsIFtyWzddIGZvciByIGluIHJvd3NdLCB3aGVyZT0ncG9zdCcsIGxhYmVsPSdBRFhMMzQ1IOatpeaVuCcpOyBheFsxXS5zdGVwKHQsIFtyWzhdIGZvciByIGluIHJvd3NdLCB3aGVyZT0ncG9zdCcsIGxhYmVsPSdNUFU2MDUwIOatpeaVuCcpOyBheFsxXS5sZWdlbmQoZnJhbWVvbj1GYWxzZSk7IGF4WzFdLnNldF94bGFiZWwoJ+enkicpOyBheFsxXS5zZXRfeWxhYmVsKCfmraUnKQogICAgZm9yIHggaW4gYXg6IHguc3BpbmVzW1sndG9wJywgJ3JpZ2h0J11dLnNldF92aXNpYmxlKEZhbHNlKQogICAgcGx0LnRpZ2h0X2xheW91dCgpOyBwbHQuc2F2ZWZpZyhvcy5wYXRoLmpvaW4oYS5vdXQsICdjb21wYXJlLnBuZycpLCBkcGk9MTYwKTsgcHJpbnQoJ+Wclu+8micsIG9zLnBhdGguam9pbihhLm91dCwgJ2NvbXBhcmUucG5nJykpCmV4Y2VwdCBFeGNlcHRpb24gYXMgZTogcHJpbnQoJ++8iOacqueVq+Wclu+8micsIGUsICfvvIknKQo=">下載</a>　<span class="n">89 行</span></summary><pre>#!/usr/bin/env python3
+&quot;&quot;&quot;雙感測器比對：讀 dual_sensor_compare 韌體的序列埠 CSV，產出比對報告與圖。
+用法：
+  python3 tools/compare_sensors.py /dev/cu.usbserial-XXXX --secs 60 --out build/compare   # 現場收 60 秒
+  python3 tools/compare_sensors.py build/compare/raw.csv --out build/compare             # 分析既有檔
+建議流程：先靜置 10 秒（量雜訊與偏移）→ 走 30 秒 → 靜置 5 秒。校正請在韌體端按左鍵做六面校正後再收。&quot;&quot;&quot;
+import sys, time, csv, math, argparse, os, statistics as st
+
+ap = argparse.ArgumentParser(); ap.add_argument(&#x27;src&#x27;); ap.add_argument(&#x27;--secs&#x27;, type=float, default=60); ap.add_argument(&#x27;--out&#x27;, default=&#x27;build/compare&#x27;)
+a = ap.parse_args(); os.makedirs(a.out, exist_ok=True)
+rows, notes = [], []
+if a.src.startswith(&#x27;/dev/&#x27;):
+    import serial
+    s = serial.Serial(a.src, 115200, timeout=1); t0 = time.time(); raw = open(os.path.join(a.out, &#x27;raw.csv&#x27;), &#x27;w&#x27;)
+    print(f&#x27;收 {a.secs:.0f} 秒…（Ctrl-C 提早結束）&#x27;)
+    try:
+        while time.time() - t0 &lt; a.secs:
+            line = s.readline().decode(&#x27;utf-8&#x27;, &#x27;replace&#x27;).strip()
+            if not line: continue
+            if line.startswith(&#x27;#&#x27;): notes.append(line); print(line); continue
+            raw.write(line + &#x27;\n&#x27;); p = line.split(&#x27;,&#x27;)
+            if len(p) == 9 and p[0].isdigit(): rows.append([float(x) for x in p])
+    except KeyboardInterrupt: pass
+    raw.close()
+else:
+    for line in open(a.src):
+        if line.startswith(&#x27;#&#x27;) or line.startswith(&#x27;t_ms&#x27;): continue
+        p = line.strip().split(&#x27;,&#x27;)
+        if len(p) == 9: rows.append([float(x) for x in p])
+if len(rows) &lt; 100: sys.exit(f&#x27;資料太少（{len(rows)} 筆）&#x27;)
+
+t = [r[0] / 1000 for r in rows]
+a1 = [(r[1], r[2], r[3]) for r in rows]; a2 = [(r[4], r[5], r[6]) for r in rows]
+mag = lambda v: math.sqrt(v[0] ** 2 + v[1] ** 2 + v[2] ** 2)
+m1 = [mag(v) for v in a1]; m2 = [mag(v) for v in a2]
+# 靜止段：用 |a| 的 1 秒滑動標準差 &lt; 0.02 g 判定
+win = 50; still = [False] * len(rows)
+for i in range(win, len(rows)):
+    if st.pstdev(m1[i - win:i]) &lt; 0.02 and st.pstdev(m2[i - win:i]) &lt; 0.02: still[i] = True
+idx_still = [i for i in range(len(rows)) if still[i]]; idx_move = [i for i in range(len(rows)) if not still[i] and i &gt;= win]
+def stats(idx, m, a):
+    if len(idx) &lt; 20: return None
+    return { &#x27;mag_mean&#x27;: st.mean(m[i] for i in idx), &#x27;mag_std&#x27;: st.pstdev(m[i] for i in idx),
+             &#x27;axis_mean&#x27;: tuple(st.mean(a[i][k] for i in idx) for k in range(3)),
+             &#x27;axis_std&#x27;: tuple(st.pstdev(a[i][k] for i in idx) for k in range(3)) }
+s1, s2 = stats(idx_still, m1, a1), stats(idx_still, m2, a2)
+# 動態段：去平均後的相關係數與增益比
+def corr_gain(idx):
+    if len(idx) &lt; 50: return None, None
+    x = [m1[i] for i in idx]; y = [m2[i] for i in idx]; mx, my = st.mean(x), st.mean(y)
+    sxy = sum((xi - mx) * (yi - my) for xi, yi in zip(x, y)); sxx = sum((xi - mx) ** 2 for xi in x); syy = sum((yi - my) ** 2 for yi in y)
+    return (sxy / math.sqrt(sxx * syy) if sxx and syy else None), (math.sqrt(syy / sxx) if sxx else None)
+corr, gain = corr_gain(idx_move)
+steps1, steps2 = int(rows[-1][7]), int(rows[-1][8])
+fs = len(rows) / (t[-1] - t[0]) if t[-1] &gt; t[0] else 0
+
+L = []
+L.append(f&#x27;# 雙感測器比對報告　{time.strftime(&quot;%Y-%m-%d %H:%M&quot;)}&#x27;)
+L.append(f&#x27;樣本 {len(rows)} 筆，{t[-1]-t[0]:.1f} 秒，實際取樣率 {fs:.1f} Hz；靜止段 {len(idx_still)/50:.1f} 秒、運動段 {len(idx_move)/50:.1f} 秒&#x27;)
+for n in notes: L.append(n)
+L.append(&#x27;\n## 靜止時（偏移與雜訊）&#x27;)
+L.append(&#x27;| 項目 | ADXL345 | MPU6050 | 解讀 |&#x27;); L.append(&#x27;|---|---|---|---|&#x27;)
+if s1 and s2:
+    L.append(f&#x27;| 合成加速度平均（應為 1.000 g） | {s1[&quot;mag_mean&quot;]:.4f} | {s2[&quot;mag_mean&quot;]:.4f} | 偏離 1 g 的量＝整體刻度／偏移誤差；校正後應 &lt; 0.01 |&#x27;)
+    L.append(f&#x27;| 合成加速度雜訊（標準差） | {s1[&quot;mag_std&quot;]*1000:.1f} mg | {s2[&quot;mag_std&quot;]*1000:.1f} mg | 越小越乾淨；決定門檻能設多低 |&#x27;)
+    L.append(f&#x27;| 各軸雜訊 X／Y／Z | {&quot;／&quot;.join(f&quot;{v*1000:.1f}&quot; for v in s1[&quot;axis_std&quot;])} mg | {&quot;／&quot;.join(f&quot;{v*1000:.1f}&quot; for v in s2[&quot;axis_std&quot;])} mg | |&#x27;)
+    L.append(f&#x27;| 各軸平均 X／Y／Z | {&quot;／&quot;.join(f&quot;{v:+.3f}&quot; for v in s1[&quot;axis_mean&quot;])} | {&quot;／&quot;.join(f&quot;{v:+.3f}&quot; for v in s2[&quot;axis_mean&quot;])} | 兩顆若貼齊，數字應接近；差異＝安裝角度或偏移 |&#x27;)
+else: L.append(&#x27;| （靜止段不足 1 秒，無法統計） | | | |&#x27;)
+L.append(&#x27;\n## 運動時（一致性）&#x27;)
+L.append(&#x27;| 項目 | 數值 | 解讀 |&#x27;); L.append(&#x27;|---|---|---|&#x27;)
+L.append(f&#x27;| 兩顆 \\|a\\| 波形相關係數 | {corr:.3f} | &gt; 0.95 表示兩顆看到同一個動作 |&#x27; if corr is not None else &#x27;| 相關係數 | （運動段不足） | |&#x27;)
+L.append(f&#x27;| 增益比 MPU6050／ADXL345 | {gain:.3f} | 偏離 1 的量＝刻度差 |&#x27; if gain is not None else &#x27;| 增益比 | （運動段不足） | |&#x27;)
+L.append(f&#x27;| 步數 ADXL345／MPU6050 | {steps1}／{steps2} | 差異 {abs(steps1-steps2)} 步（{abs(steps1-steps2)/max(1,max(steps1,steps2))*100:.1f}%）；同一演算法、同一門檻 |&#x27;)
+L.append(&#x27;\n## 怎麼讀這份報告&#x27;)
+L.append(&#x27;- 靜止時 |a| 不是 1.000：先做六面校正（韌體按左鍵），校正後偏移應收斂到 0.01 g 以內。&#x27;)
+L.append(&#x27;- 雜訊：ADXL345（13 bit、3.9 mg/格）通常比 MPU6050（16 bit）粗，但走路訊號 ±0.3 g 遠大於兩者雜訊，對計步影響不大。&#x27;)
+L.append(&#x27;- 相關係數高但步數不同：差在門檻附近的邊緣峰值；把門檻從 0.12 g 調到 0.15 g 再比一次。&#x27;)
+L.append(&#x27;- 相關係數低：兩顆沒貼牢、或軸向沒對齊（|a| 不受軸向影響，所以多半是沒貼牢）。&#x27;)
+open(os.path.join(a.out, &#x27;report.md&#x27;), &#x27;w&#x27;).write(&#x27;\n&#x27;.join(L) + &#x27;\n&#x27;); print(&#x27;\n&#x27;.join(L))
+try:
+    import matplotlib; matplotlib.use(&#x27;Agg&#x27;); import matplotlib.pyplot as plt
+    plt.rcParams[&#x27;font.family&#x27;] = [&#x27;PingFang HK&#x27;, &#x27;Heiti TC&#x27;]; plt.rcParams[&#x27;axes.unicode_minus&#x27;] = False
+    fig, ax = plt.subplots(2, 1, figsize=(11, 6), sharex=True)
+    ax[0].plot(t, m1, lw=.8, label=&#x27;ADXL345&#x27;); ax[0].plot(t, m2, lw=.8, label=&#x27;MPU6050&#x27;, alpha=.8); ax[0].set_ylabel(&#x27;|a|（g）&#x27;); ax[0].legend(frameon=False)
+    ax[0].set_title(&#x27;兩顆感測器的合成加速度（貼在一起時應幾乎重疊）&#x27;, loc=&#x27;left&#x27;)
+    ax[1].step(t, [r[7] for r in rows], where=&#x27;post&#x27;, label=&#x27;ADXL345 步數&#x27;); ax[1].step(t, [r[8] for r in rows], where=&#x27;post&#x27;, label=&#x27;MPU6050 步數&#x27;); ax[1].legend(frameon=False); ax[1].set_xlabel(&#x27;秒&#x27;); ax[1].set_ylabel(&#x27;步&#x27;)
+    for x in ax: x.spines[[&#x27;top&#x27;, &#x27;right&#x27;]].set_visible(False)
+    plt.tight_layout(); plt.savefig(os.path.join(a.out, &#x27;compare.png&#x27;), dpi=160); print(&#x27;圖：&#x27;, os.path.join(a.out, &#x27;compare.png&#x27;))
+except Exception as e: print(&#x27;（未畫圖：&#x27;, e, &#x27;）&#x27;)
+</pre></details></section><section id="sedentary"><h2>B　久坐提醒</h2>
+<div class="meta"><span class="tag">入門</span><span class="ok">✓ 原生單元測試 9/9</span></div>
+<p>原作說明書寫了但沒做的功能：連續 N 分鐘沒有步數就響鈴，之後每 M 分鐘再提醒；番茄鐘進行中暫停。純 C++，模擬器可直接驗（把速度調到 600× 看 1 小時）。</p>
+<h3>步驟</h3><ol><li>把 <code>sedentary.h</code> 複製到 <code>firmware/app/</code>，照檔頭說明在 <code>app.cpp</code> 加三行。</li><li>在 <code>buzzer.h</code> 加一段提醒旋律。</li><li><code>make sim-build</code>，模擬器速度 600×，走幾步後停 1 小時看會不會響。</li></ol>
+<h3>程式</h3><details><summary><code>firmware/extensions/sedentary/sedentary.h</code>　<a download="sedentary.h" href="data:text/plain;charset=utf-8;base64,Ly8g5bu25Ly45bCI5qGIIELvvJrkuYXlnZDmj5DphpLvvIjljp/kvZzoqqrmmI7mm7jlr6vkuobkvYbmspLlgZrnmoTlip/og73vvIkKLy8g57SUIEMrK++8jOS4jeeisOehrOmrlOOAgueUqOazle+8iOWcqCBhcHAuY3Bw77yJ77yaCi8vICAgc3RhdGljIFNlZGVudGFyeSBzZWQ7ICAgICAgICAgICAgICAgICAgICAgICAgIC8vIOWFqOWfnwovLyAgIOWcqCBhcHBfbG9vcCgpIOavj+asoeWPluaoo+W+jO+8mnNlZC5mZWVkKHBlZG8uc3RlcHMoKSwgbm93KTsKLy8gICBpZiAoc2VkLmR1ZShub3cpKSB7IGJ1enoucGxheShNRUxPRFlfU0VERU5UQVJZLCA0KTsgaGFsX2xvZygiW+S5heWdkF0g5beyICV1IOWIhumQmOaykui1sOWLlSIsIHNlZC5pZGxlX21pbnV0ZXMobm93KSk7IH0KLy8gICDnlarojITpkJjpgLLooYzkuK3kuI3mj5DphpLvvJpzZWQuc3VzcGVuZChwb21vLnN0YXRlKCkgPT0gUE9NT19SVU5OSU5HKTsKLy8g5ris6Kmm77yaY2xhbmcrKyAtc3RkPWMrKzE3IGZpcm13YXJlL2V4dGVuc2lvbnMvc2VkZW50YXJ5L3Rlc3Rfc2VkZW50YXJ5LmNwcCAtbyBidWlsZC90ZXN0X3NlZGVudGFyeSAmJiBidWlsZC90ZXN0X3NlZGVudGFyeQojcHJhZ21hIG9uY2UKI2luY2x1ZGUgPHN0ZGludC5oPgoKY2xhc3MgU2VkZW50YXJ5IHsKcHVibGljOgogIC8vIGxpbWl0X21pbu+8mumAo+e6jOW5vuWIhumQmOaykuacieatpeaVuOWwseaPkOmGku+8m3JlcGVhdF9taW7vvJrmj5DphpLlvozoi6Xku43kuI3li5XvvIzpmpTlub7liIbpkJjlho3mj5DphpLkuIDmrKEKICBleHBsaWNpdCBTZWRlbnRhcnkodWludDE2X3QgbGltaXRfbWluID0gNjAsIHVpbnQxNl90IHJlcGVhdF9taW4gPSAxNSkgOiBsaW1pdF8obGltaXRfbWluKSwgcmVwZWF0XyhyZXBlYXRfbWluKSB7fQogIHZvaWQgZmVlZCh1aW50MzJfdCBzdGVwcywgdWludDMyX3Qgbm93X21zKSB7CiAgICBpZiAoIXByaW1lZF8pIHsgbGFzdF9zdGVwc18gPSBzdGVwczsgbGFzdF9tb3ZlXyA9IG5vd19tczsgcHJpbWVkXyA9IHRydWU7IHJldHVybjsgfQogICAgaWYgKHN0ZXBzICE9IGxhc3Rfc3RlcHNfKSB7IGxhc3Rfc3RlcHNfID0gc3RlcHM7IGxhc3RfbW92ZV8gPSBub3dfbXM7IHJlbWluZGVkXyA9IDA7IH0KICB9CiAgdm9pZCBzdXNwZW5kKGJvb2wgcykgeyBzdXNwZW5kZWRfID0gczsgfQogIHVpbnQzMl90IGlkbGVfbWludXRlcyh1aW50MzJfdCBub3dfbXMpIGNvbnN0IHsgcmV0dXJuIHByaW1lZF8gPyAobm93X21zIC0gbGFzdF9tb3ZlXykgLyA2MDAwMHUgOiAwOyB9CiAgLy8g5Yiw5LqG6Kmy5o+Q6YaS55qE5pmC5Yi75Zue5YKzIHRydWXvvIjmr4/lgIvmmYLliLvlj6rlm57kuIDmrKHvvIkKICBib29sIGR1ZSh1aW50MzJfdCBub3dfbXMpIHsKICAgIGlmICghcHJpbWVkXyB8fCBzdXNwZW5kZWRfKSByZXR1cm4gZmFsc2U7CiAgICB1aW50MzJfdCBpZGxlID0gaWRsZV9taW51dGVzKG5vd19tcyk7CiAgICB1aW50MzJfdCBuZXh0ID0gcmVtaW5kZWRfID09IDAgPyBsaW1pdF8gOiBsaW1pdF8gKyByZW1pbmRlZF8gKiByZXBlYXRfOwogICAgaWYgKGlkbGUgPj0gbmV4dCkgeyByZW1pbmRlZF8rKzsgcmV0dXJuIHRydWU7IH0KICAgIHJldHVybiBmYWxzZTsKICB9CiAgdm9pZCBzZXRfbGltaXRzKHVpbnQxNl90IGxpbWl0X21pbiwgdWludDE2X3QgcmVwZWF0X21pbikgeyBsaW1pdF8gPSBsaW1pdF9taW47IHJlcGVhdF8gPSByZXBlYXRfbWluOyB9CnByaXZhdGU6CiAgdWludDE2X3QgbGltaXRfLCByZXBlYXRfOyB1aW50MzJfdCBsYXN0X3N0ZXBzXyA9IDAsIGxhc3RfbW92ZV8gPSAwOyB1aW50OF90IHJlbWluZGVkXyA9IDA7IGJvb2wgcHJpbWVkXyA9IGZhbHNlLCBzdXNwZW5kZWRfID0gZmFsc2U7Cn07Cg==">下載</a>　<span class="n">32 行</span></summary><pre>// 延伸專案 B：久坐提醒（原作說明書寫了但沒做的功能）
+// 純 C++，不碰硬體。用法（在 app.cpp）：
+//   static Sedentary sed;                         // 全域
+//   在 app_loop() 每次取樣後：sed.feed(pedo.steps(), now);
+//   if (sed.due(now)) { buzz.play(MELODY_SEDENTARY, 4); hal_log(&quot;[久坐] 已 %u 分鐘沒走動&quot;, sed.idle_minutes(now)); }
+//   番茄鐘進行中不提醒：sed.suspend(pomo.state() == POMO_RUNNING);
+// 測試：clang++ -std=c++17 firmware/extensions/sedentary/test_sedentary.cpp -o build/test_sedentary &amp;&amp; build/test_sedentary
+#pragma once
+#include &lt;stdint.h&gt;
+
+class Sedentary {
+public:
+  // limit_min：連續幾分鐘沒有步數就提醒；repeat_min：提醒後若仍不動，隔幾分鐘再提醒一次
+  explicit Sedentary(uint16_t limit_min = 60, uint16_t repeat_min = 15) : limit_(limit_min), repeat_(repeat_min) {}
+  void feed(uint32_t steps, uint32_t now_ms) {
+    if (!primed_) { last_steps_ = steps; last_move_ = now_ms; primed_ = true; return; }
+    if (steps != last_steps_) { last_steps_ = steps; last_move_ = now_ms; reminded_ = 0; }
+  }
+  void suspend(bool s) { suspended_ = s; }
+  uint32_t idle_minutes(uint32_t now_ms) const { return primed_ ? (now_ms - last_move_) / 60000u : 0; }
+  // 到了該提醒的時刻回傳 true（每個時刻只回一次）
+  bool due(uint32_t now_ms) {
+    if (!primed_ || suspended_) return false;
+    uint32_t idle = idle_minutes(now_ms);
+    uint32_t next = reminded_ == 0 ? limit_ : limit_ + reminded_ * repeat_;
+    if (idle &gt;= next) { reminded_++; return true; }
+    return false;
+  }
+  void set_limits(uint16_t limit_min, uint16_t repeat_min) { limit_ = limit_min; repeat_ = repeat_min; }
+private:
+  uint16_t limit_, repeat_; uint32_t last_steps_ = 0, last_move_ = 0; uint8_t reminded_ = 0; bool primed_ = false, suspended_ = false;
+};
+</pre></details><details><summary><code>firmware/extensions/sedentary/test_sedentary.cpp</code>　<a download="test_sedentary.cpp" href="data:text/plain;charset=utf-8;base64,I2luY2x1ZGUgInNlZGVudGFyeS5oIgojaW5jbHVkZSA8Y3N0ZGlvPgppbnQgbWFpbigpIHsKICBpbnQgZmFpbHMgPSAwOyBhdXRvIGNoZWNrID0gWyZdKGNvbnN0IGNoYXIqIG4sIGJvb2wgb2spIHsgZmFpbHMgKz0gIW9rOyBwcmludGYoIiVzICVzXG4iLCBvayA/ICLinJMiIDogIuKclyIsIG4pOyB9OwogIFNlZGVudGFyeSBzKDYwLCAxNSk7IHVpbnQzMl90IHQgPSAwOyBjb25zdCB1aW50MzJfdCBNSU4gPSA2MDAwMDsKICBzLmZlZWQoMTAwLCB0KTsKICBmb3IgKGludCBtID0gMTsgbSA8IDYwOyBtKyspIHsgdCA9IG0gKiBNSU47IHMuZmVlZCgxMDAsIHQpOyBpZiAocy5kdWUodCkpIHsgY2hlY2soIjU5IOWIhumQmOWFp+S4jeipsuaPkOmGkiIsIGZhbHNlKTsgYnJlYWs7IH0gfQogIHQgPSA2MCAqIE1JTjsgcy5mZWVkKDEwMCwgdCk7IGNoZWNrKCLnrKwgNjAg5YiG6ZCY5o+Q6YaSIiwgcy5kdWUodCkpOwogIGNoZWNrKCLlkIzkuIDliIbpkJjkuI3ph43opIciLCAhcy5kdWUodCkpOwogIHQgPSA3MCAqIE1JTjsgcy5mZWVkKDEwMCwgdCk7IGNoZWNrKCI3MCDliIbpkJjpgoTmspLliLDkuIvkuIDmrKHvvIg3Ne+8iSIsICFzLmR1ZSh0KSk7CiAgdCA9IDc1ICogTUlOOyBzLmZlZWQoMTAwLCB0KTsgY2hlY2soIjc1IOWIhumQmOesrOS6jOasoeaPkOmGkiIsIHMuZHVlKHQpKTsKICB0ID0gNzYgKiBNSU47IHMuZmVlZCgxMDUsIHQpOyBjaGVjaygi6LWw5YuV5b6M5q246Zu2Iiwgcy5pZGxlX21pbnV0ZXModCkgPT0gMCAmJiAhcy5kdWUodCkpOwogIHQgPSA3NiAqIE1JTiArIDU5ICogTUlOOyBzLmZlZWQoMTA1LCB0KTsgY2hlY2soIui1sOWLleW+jCA1OSDliIbpkJjkuI3mj5DphpIiLCAhcy5kdWUodCkpOwogIHMuc3VzcGVuZCh0cnVlKTsgdCArPSAxMCAqIE1JTjsgcy5mZWVkKDEwNSwgdCk7IGNoZWNrKCLnlarojITpkJjpgLLooYzkuK3kuI3mj5DphpIiLCAhcy5kdWUodCkpOwogIHMuc3VzcGVuZChmYWxzZSk7IGNoZWNrKCLop6PpmaTlvozoo5zmj5DphpIiLCBzLmR1ZSh0KSk7CiAgcHJpbnRmKGZhaWxzID8gIlxu5pyJICVkIOmgheacqumAmumBjlxuIiA6ICJcbuWFqOmDqOmAmumBjlxuIiwgZmFpbHMpOyByZXR1cm4gZmFpbHMgPyAxIDogMDsKfQo=">下載</a>　<span class="n">17 行</span></summary><pre>#include &quot;sedentary.h&quot;
+#include &lt;cstdio&gt;
+int main() {
+  int fails = 0; auto check = [&amp;](const char* n, bool ok) { fails += !ok; printf(&quot;%s %s\n&quot;, ok ? &quot;✓&quot; : &quot;✗&quot;, n); };
+  Sedentary s(60, 15); uint32_t t = 0; const uint32_t MIN = 60000;
+  s.feed(100, t);
+  for (int m = 1; m &lt; 60; m++) { t = m * MIN; s.feed(100, t); if (s.due(t)) { check(&quot;59 分鐘內不該提醒&quot;, false); break; } }
+  t = 60 * MIN; s.feed(100, t); check(&quot;第 60 分鐘提醒&quot;, s.due(t));
+  check(&quot;同一分鐘不重複&quot;, !s.due(t));
+  t = 70 * MIN; s.feed(100, t); check(&quot;70 分鐘還沒到下一次（75）&quot;, !s.due(t));
+  t = 75 * MIN; s.feed(100, t); check(&quot;75 分鐘第二次提醒&quot;, s.due(t));
+  t = 76 * MIN; s.feed(105, t); check(&quot;走動後歸零&quot;, s.idle_minutes(t) == 0 &amp;&amp; !s.due(t));
+  t = 76 * MIN + 59 * MIN; s.feed(105, t); check(&quot;走動後 59 分鐘不提醒&quot;, !s.due(t));
+  s.suspend(true); t += 10 * MIN; s.feed(105, t); check(&quot;番茄鐘進行中不提醒&quot;, !s.due(t));
+  s.suspend(false); check(&quot;解除後補提醒&quot;, s.due(t));
+  printf(fails ? &quot;\n有 %d 項未通過\n&quot; : &quot;\n全部通過\n&quot;, fails); return fails ? 1 : 0;
+}
+</pre></details></section><section id="pedometer_stable"><h2>C　步頻穩定度：擋掉「三下搖晃」</h2>
+<div class="meta"><span class="tag">挑戰</span><span class="ok">✓ 原生對照測試 6/6（原版 vs 穩定版）</span></div>
+<p>真的走路步伐間隔很規律，搖晃忽快忽慢。多要求最近三個間隔的變異係數 ≤ 25% 才開始計；等距的三下搖晃仍會被計（物理上就是走路步頻），忽快忽慢的會被擋掉。</p>
+<h3>步驟</h3><ol><li>把 <code>app.cpp</code> 的 <code>Pedometer</code> 換成 <code>PedometerStable</code>（介面相同）。</li><li>跑測試比較兩版在六種情境的步數。</li><li>討論：為什麼等距搖晃擋不掉？還有哪些特徵可以用？</li></ol>
+<h3>程式</h3><details><summary><code>firmware/extensions/pedometer_stable/pedometer_stable.h</code>　<a download="pedometer_stable.h" href="data:text/plain;charset=utf-8;base64,Ly8g5bu25Ly45bCI5qGIIEPvvJrliqDlhaXjgIzmraXpoLvnqanlrprluqbjgI3liKTmlrfnmoToqIjmraXlmagKLy8g5oOz5rOV77ya55yf55qE6LWw6Lev5pmC77yM6YCj57qM5q2l5LyQ55qE6ZaT6ZqU5b6I5o6l6L+R77yI6K6K55Ww5bCP77yJ77yb5ouN5omT44CB5pCW5pmD55qE6ZaT6ZqU5b+96ZW35b+955+t44CCCi8vIOWBmuazle+8muWcqOWOn+acrOOAjOWzsOWAvOKGkumWk+malOKGkumAo+e6jOeiuuiqjeOAjeS5i+Wklu+8jOWGjeimgeaxguacgOi/kSBOIOWAi+mWk+malOeahOiuiueVsOS/guaVuO+8iOaomea6luW3ru+8j+W5s+Wdh++8ieS9juaWvCBjdl9tYXgg5omN6ZaL5aeL6KiI44CCCi8vIOeUqOazle+8muaKiiBhcHAuY3BwIOeahCBQZWRvbWV0ZXIg5o+b5oiQIFBlZG9tZXRlclN0YWJsZe+8iOS7i+mdouebuOWQjO+8ieOAggovLyDmuKzoqabvvJpjbGFuZysrIC1zdGQ9YysrMTcgLUkgZmlybXdhcmUvYXBwIGZpcm13YXJlL2V4dGVuc2lvbnMvcGVkb21ldGVyX3N0YWJsZS90ZXN0X3BlZG9tZXRlcl9zdGFibGUuY3BwIGZpcm13YXJlL2FwcC9wZWRvbWV0ZXIuY3BwIC1vIGJ1aWxkL3Rlc3RfcGVkb21ldGVyX3N0YWJsZSAmJiBidWlsZC90ZXN0X3BlZG9tZXRlcl9zdGFibGUKI3ByYWdtYSBvbmNlCiNpbmNsdWRlIDxzdGRpbnQuaD4KI2luY2x1ZGUgPG1hdGguaD4KCnN0cnVjdCBTdGFibGVQYXJhbXMgewogIGZsb2F0ICAgIGtfdGhyZXNoICAgICAgPSAwLjEyZjsKICB1aW50MTZfdCBtaW5faW50ZXJ2YWwgID0gMjUwOwogIHVpbnQxNl90IG1heF9pbnRlcnZhbCAgPSAyMDAwOwogIHVpbnQ4X3QgIGNvbmZpcm1fc3RlcHMgPSA0OyAgICAgIC8vIOimgSA0IOWAi+WzsOWAvOaJjeaciSAzIOWAi+mWk+malOWPr+S7peeul+iuiueVsAogIGZsb2F0ICAgIGN2X21heCAgICAgICAgPSAwLjI1ZjsgIC8vIOmWk+malOiuiueVsOS/guaVuOS4iumZkO+8mjAuMjUg77ydIOmWk+malOW/veW/q+W/veaFoui2hemBjiAyNSUg5bCx5LiN566X6LWw6LevCn07CgpjbGFzcyBQZWRvbWV0ZXJTdGFibGUgewpwdWJsaWM6CiAgdm9pZCBiZWdpbih1aW50MzJfdCBzYXZlZCkgeyBzdGVwc18gPSBzYXZlZDsgfQogIHZvaWQgZmVlZChmbG9hdCBheCwgZmxvYXQgYXksIGZsb2F0IGF6LCB1aW50MzJfdCBub3dfbXMpIHsKICAgIGZsb2F0IG0gPSBzcXJ0ZihheCAqIGF4ICsgYXkgKiBheSArIGF6ICogYXopOwogICAgaWYgKCFwcmltZWRfKSB7IGxwXyA9IGRjXyA9IG07IHByaW1lZF8gPSB0cnVlOyByZXR1cm47IH0KICAgIGxwXyArPSAwLjNmICogKG0gLSBscF8pOyBkY18gKz0gMC4wMmYgKiAobHBfIC0gZGNfKTsKICAgIHByZXYyXyA9IHByZXZfOyBwcmV2XyA9IHNfOyBzXyA9IGxwXyAtIGRjXzsKICAgIGJvb2wgcGVhayA9IHByZXZfID4gcHJldjJfICYmIHByZXZfID49IHNfICYmIHByZXZfID4gcC5rX3RocmVzaDsKICAgIGlmICghcGVhaykgeyBpZiAocGVuZGluZ18gJiYgbm93X21zIC0gbGFzdF8gPiBwLm1heF9pbnRlcnZhbCkgcGVuZGluZ18gPSAwOyByZXR1cm47IH0KICAgIHVpbnQzMl90IGdhcCA9IG5vd19tcyAtIGxhc3RfOwogICAgaWYgKGxhc3RfICYmIGdhcCA8IHAubWluX2ludGVydmFsKSByZXR1cm47CiAgICBpZiAobGFzdF8gPT0gMCB8fCBnYXAgPiBwLm1heF9pbnRlcnZhbCkgeyBwZW5kaW5nXyA9IDA7IGxhc3RfID0gbm93X21zOyBwZW5kaW5nXyA9IDE7IHJldHVybjsgfQogICAgbGFzdF8gPSBub3dfbXM7CiAgICBnYXBzX1tnYXBfaV8rKyAlIDNdID0gZ2FwOyAgICAgICAgICAgICAgICAgICAgICAgLy8g5L+d55WZ5pyA6L+RIDMg5YCL6ZaT6ZqUCiAgICBpZiAocGVuZGluZ18gPCBwLmNvbmZpcm1fc3RlcHMpIHsKICAgICAgcGVuZGluZ18rKzsKICAgICAgaWYgKHBlbmRpbmdfID49IHAuY29uZmlybV9zdGVwcykgewogICAgICAgIGlmIChjdl9vaygpKSB7IHN0ZXBzXyArPSBwZW5kaW5nXzsgY29uZmlybWVkXyA9IHRydWU7IH0gZWxzZSBwZW5kaW5nXyA9IDE7ICAgLy8g56+A5aWP5LqC77ya6YeN5paw57Sv56mNCiAgICAgIH0KICAgIH0gZWxzZSB7CiAgICAgIGlmIChjdl9vaygpKSBzdGVwc18rKzsgZWxzZSB7IHBlbmRpbmdfID0gMTsgY29uZmlybWVkXyA9IGZhbHNlOyB9CiAgICB9CiAgfQogIHVpbnQzMl90IHN0ZXBzKCkgY29uc3QgeyByZXR1cm4gc3RlcHNfOyB9CiAgdm9pZCByZXNldCgpIHsgc3RlcHNfID0gMDsgcGVuZGluZ18gPSAwOyB9CiAgdm9pZCBzZXRfc3RlcHModWludDMyX3QgcykgeyBzdGVwc18gPSBzOyB9CiAgZmxvYXQgc2lnbmFsKCkgY29uc3QgeyByZXR1cm4gc187IH0KICBTdGFibGVQYXJhbXMgcDsKcHJpdmF0ZToKICBib29sIGN2X29rKCkgY29uc3QgewogICAgaWYgKGdhcF9pXyA8IDMpIHJldHVybiBmYWxzZTsKICAgIGZsb2F0IG1lYW4gPSAoZ2Fwc19bMF0gKyBnYXBzX1sxXSArIGdhcHNfWzJdKSAvIDMuMGYsIHZhciA9IDA7CiAgICBmb3IgKGludCBpID0gMDsgaSA8IDM7IGkrKykgdmFyICs9IChnYXBzX1tpXSAtIG1lYW4pICogKGdhcHNfW2ldIC0gbWVhbik7CiAgICByZXR1cm4gc3FydGYodmFyIC8gMykgLyBtZWFuIDw9IHAuY3ZfbWF4OwogIH0KICB1aW50MzJfdCBzdGVwc18gPSAwLCBsYXN0XyA9IDAsIGdhcHNfWzNdID0gezAsIDAsIDB9OyB1aW50OF90IGdhcF9pXyA9IDAsIHBlbmRpbmdfID0gMDsKICBmbG9hdCBscF8gPSAxLCBkY18gPSAxLCBzXyA9IDAsIHByZXZfID0gMCwgcHJldjJfID0gMDsgYm9vbCBwcmltZWRfID0gZmFsc2UsIGNvbmZpcm1lZF8gPSBmYWxzZTsKfTsK">下載</a>　<span class="n">56 行</span></summary><pre>// 延伸專案 C：加入「步頻穩定度」判斷的計步器
+// 想法：真的走路時，連續步伐的間隔很接近（變異小）；拍打、搖晃的間隔忽長忽短。
+// 做法：在原本「峰值→間隔→連續確認」之外，再要求最近 N 個間隔的變異係數（標準差／平均）低於 cv_max 才開始計。
+// 用法：把 app.cpp 的 Pedometer 換成 PedometerStable（介面相同）。
+// 測試：clang++ -std=c++17 -I firmware/app firmware/extensions/pedometer_stable/test_pedometer_stable.cpp firmware/app/pedometer.cpp -o build/test_pedometer_stable &amp;&amp; build/test_pedometer_stable
+#pragma once
+#include &lt;stdint.h&gt;
+#include &lt;math.h&gt;
+
+struct StableParams {
+  float    k_thresh      = 0.12f;
+  uint16_t min_interval  = 250;
+  uint16_t max_interval  = 2000;
+  uint8_t  confirm_steps = 4;      // 要 4 個峰值才有 3 個間隔可以算變異
+  float    cv_max        = 0.25f;  // 間隔變異係數上限：0.25 ＝ 間隔忽快忽慢超過 25% 就不算走路
+};
+
+class PedometerStable {
+public:
+  void begin(uint32_t saved) { steps_ = saved; }
+  void feed(float ax, float ay, float az, uint32_t now_ms) {
+    float m = sqrtf(ax * ax + ay * ay + az * az);
+    if (!primed_) { lp_ = dc_ = m; primed_ = true; return; }
+    lp_ += 0.3f * (m - lp_); dc_ += 0.02f * (lp_ - dc_);
+    prev2_ = prev_; prev_ = s_; s_ = lp_ - dc_;
+    bool peak = prev_ &gt; prev2_ &amp;&amp; prev_ &gt;= s_ &amp;&amp; prev_ &gt; p.k_thresh;
+    if (!peak) { if (pending_ &amp;&amp; now_ms - last_ &gt; p.max_interval) pending_ = 0; return; }
+    uint32_t gap = now_ms - last_;
+    if (last_ &amp;&amp; gap &lt; p.min_interval) return;
+    if (last_ == 0 || gap &gt; p.max_interval) { pending_ = 0; last_ = now_ms; pending_ = 1; return; }
+    last_ = now_ms;
+    gaps_[gap_i_++ % 3] = gap;                       // 保留最近 3 個間隔
+    if (pending_ &lt; p.confirm_steps) {
+      pending_++;
+      if (pending_ &gt;= p.confirm_steps) {
+        if (cv_ok()) { steps_ += pending_; confirmed_ = true; } else pending_ = 1;   // 節奏亂：重新累積
+      }
+    } else {
+      if (cv_ok()) steps_++; else { pending_ = 1; confirmed_ = false; }
+    }
+  }
+  uint32_t steps() const { return steps_; }
+  void reset() { steps_ = 0; pending_ = 0; }
+  void set_steps(uint32_t s) { steps_ = s; }
+  float signal() const { return s_; }
+  StableParams p;
+private:
+  bool cv_ok() const {
+    if (gap_i_ &lt; 3) return false;
+    float mean = (gaps_[0] + gaps_[1] + gaps_[2]) / 3.0f, var = 0;
+    for (int i = 0; i &lt; 3; i++) var += (gaps_[i] - mean) * (gaps_[i] - mean);
+    return sqrtf(var / 3) / mean &lt;= p.cv_max;
+  }
+  uint32_t steps_ = 0, last_ = 0, gaps_[3] = {0, 0, 0}; uint8_t gap_i_ = 0, pending_ = 0;
+  float lp_ = 1, dc_ = 1, s_ = 0, prev_ = 0, prev2_ = 0; bool primed_ = false, confirmed_ = false;
+};
+</pre></details><details><summary><code>firmware/extensions/pedometer_stable/test_pedometer_stable.cpp</code>　<a download="test_pedometer_stable.cpp" href="data:text/plain;charset=utf-8;base64,Ly8g6IiH5Y6f54mIIFBlZG9tZXRlciDlkIzkuIDlpZfmg4XlooPlsI3nhafvvJrnm67mqJnmmK/jgIzkuInkuIsgMC43IOenkuaQluaZg+S4jeioiOOAjeiAjOi1sOi3r+eFp+W4uAojaW5jbHVkZSAicGVkb21ldGVyX3N0YWJsZS5oIgojaW5jbHVkZSAicGVkb21ldGVyLmgiCiNpbmNsdWRlIDxjc3RkaW8+CiNpbmNsdWRlIDxjc3RkbGliPgpzdGF0aWMgZmxvYXQgZnJhbmQoKSB7IHJldHVybiByYW5kKCkgLyAoZmxvYXQpUkFORF9NQVggLSAwLjVmOyB9CnRlbXBsYXRlIDxjbGFzcyBQPiBzdGF0aWMgdWludDMyX3QgcnVuKFAmIHAsIGJvb2wgd2Fsa2luZywgZmxvYXQgYnBtLCBmbG9hdCBhbXAsIGZsb2F0IHNlY3MsIGludCBzaGFrZXMsIGZsb2F0IGdhcF9zLCBib29sIGppdHRlciA9IGZhbHNlKSB7CiAgcC5iZWdpbigwKTsKICBmb3IgKGludCBpID0gMDsgaSA8IChpbnQpKHNlY3MgKiA1MCk7IGkrKykgewogICAgdWludDMyX3QgdCA9IGkgKiAyMDsgZmxvYXQgZiA9IDEuMGYgKyBmcmFuZCgpICogMC4wM2Y7CiAgICBpZiAod2Fsa2luZykgZiArPSBhbXAgKiBzaW5mKDIgKiBNX1BJICogKGJwbSAvIDYwLjBmKSAqIHQgLyAxMDAwLjBmKTsKICAgIGZvciAoaW50IGsgPSAwOyBrIDwgc2hha2VzOyBrKyspIHsgZmxvYXQgZyA9IGppdHRlciA/IGdhcF9zICogKDEgKyAwLjVmICogKChrICUgMikgPyAxIDogLTEpKSA6IGdhcF9zOyBmbG9hdCB0MCA9IDEwMDAgKyBrICogZyAqIDEwMDA7IGlmICh0ID49IHQwICYmIHQgPCB0MCArIDE1MCkgZiArPSAwLjdmICogc2luZihNX1BJICogKHQgLSB0MCkgLyAxNTApOyB9CiAgICBwLmZlZWQoMCwgMCwgZiwgdCk7CiAgfQogIHJldHVybiBwLnN0ZXBzKCk7Cn0KaW50IG1haW4oKSB7CiAgaW50IGZhaWxzID0gMDsgc3JhbmQoMSk7CiAgYXV0byBjaGVjayA9IFsmXShjb25zdCBjaGFyKiBuLCB1aW50MzJfdCBhLCB1aW50MzJfdCBiLCB1aW50MzJfdCBsbywgdWludDMyX3QgaGkpIHsKICAgIGJvb2wgb2sgPSBiID49IGxvICYmIGIgPD0gaGk7IGZhaWxzICs9ICFvazsgcHJpbnRmKCIlcyAlLTM2cyDljp/niYggJTN144CA56mp5a6a54mIICUzde+8iOmgkOacnyAlde+9niV177yJXG4iLCBvayA/ICLinJMiIDogIuKclyIsIG4sIGEsIGIsIGxvLCBoaSk7IH07CiAgUGVkb21ldGVyIG87IFBlZG9tZXRlclN0YWJsZSBzOwogIGNoZWNrKCLotbDot68gMzAg56eSIEAxMTAiLCBydW4obywgdHJ1ZSwgMTEwLCAuMjVmLCAzMCwgMCwgMCksIHJ1bihzLCB0cnVlLCAxMTAsIC4yNWYsIDMwLCAwLCAwKSwgNDYsIDU4KTsKICBjaGVjaygi5oWi6LWwIDMwIOenkiBAODAiLCBydW4obywgdHJ1ZSwgODAsIC4yMGYsIDMwLCAwLCAwKSwgcnVuKHMsIHRydWUsIDgwLCAuMjBmLCAzMCwgMCwgMCksIDMzLCA0Mik7CiAgY2hlY2soIuW/q+i1sCAzMCDnp5IgQDE3MCIsIHJ1bihvLCB0cnVlLCAxNzAsIC4zNWYsIDMwLCAwLCAwKSwgcnVuKHMsIHRydWUsIDE3MCwgLjM1ZiwgMzAsIDAsIDApLCA3NiwgODgpOwogIGNoZWNrKCLllq7mrKHmkJbmmYMiLCBydW4obywgZmFsc2UsIDAsIDAsIDEwLCAxLCAwKSwgcnVuKHMsIGZhbHNlLCAwLCAwLCAxMCwgMSwgMCksIDAsIDApOwogIGNoZWNrKCLkuInkuIvmkJbmmYPplpPpmpQgMC43IOenku+8iOetiei3ne+8jOWDj+i1sOi3r++8iSIsIHJ1bihvLCBmYWxzZSwgMCwgMCwgMTAsIDMsIC43ZiksIHJ1bihzLCBmYWxzZSwgMCwgMCwgMTAsIDMsIC43ZiksIDAsIDMpOwogIGNoZWNrKCLkupTkuIvmkJbmmYPplpPpmpTlv73lv6vlv73mhaLvvIgwLjM177yPMS4wNSDnp5LvvIkiLCBydW4obywgZmFsc2UsIDAsIDAsIDEyLCA1LCAuN2YsIHRydWUpLCBydW4ocywgZmFsc2UsIDAsIDAsIDEyLCA1LCAuN2YsIHRydWUpLCAwLCAwKTsKICBwcmludGYoZmFpbHMgPyAiXG7mnIkgJWQg6aCF5pyq6YCa6YGOXG4iIDogIlxu5YWo6YOo6YCa6YGOXG4iLCBmYWlscyk7IHJldHVybiBmYWlscyA/IDEgOiAwOwp9Cg==">下載</a>　<span class="n">29 行</span></summary><pre>// 與原版 Pedometer 同一套情境對照：目標是「三下 0.7 秒搖晃不計」而走路照常
+#include &quot;pedometer_stable.h&quot;
+#include &quot;pedometer.h&quot;
+#include &lt;cstdio&gt;
+#include &lt;cstdlib&gt;
+static float frand() { return rand() / (float)RAND_MAX - 0.5f; }
+template &lt;class P&gt; static uint32_t run(P&amp; p, bool walking, float bpm, float amp, float secs, int shakes, float gap_s, bool jitter = false) {
+  p.begin(0);
+  for (int i = 0; i &lt; (int)(secs * 50); i++) {
+    uint32_t t = i * 20; float f = 1.0f + frand() * 0.03f;
+    if (walking) f += amp * sinf(2 * M_PI * (bpm / 60.0f) * t / 1000.0f);
+    for (int k = 0; k &lt; shakes; k++) { float g = jitter ? gap_s * (1 + 0.5f * ((k % 2) ? 1 : -1)) : gap_s; float t0 = 1000 + k * g * 1000; if (t &gt;= t0 &amp;&amp; t &lt; t0 + 150) f += 0.7f * sinf(M_PI * (t - t0) / 150); }
+    p.feed(0, 0, f, t);
+  }
+  return p.steps();
+}
+int main() {
+  int fails = 0; srand(1);
+  auto check = [&amp;](const char* n, uint32_t a, uint32_t b, uint32_t lo, uint32_t hi) {
+    bool ok = b &gt;= lo &amp;&amp; b &lt;= hi; fails += !ok; printf(&quot;%s %-36s 原版 %3u　穩定版 %3u（預期 %u～%u）\n&quot;, ok ? &quot;✓&quot; : &quot;✗&quot;, n, a, b, lo, hi); };
+  Pedometer o; PedometerStable s;
+  check(&quot;走路 30 秒 @110&quot;, run(o, true, 110, .25f, 30, 0, 0), run(s, true, 110, .25f, 30, 0, 0), 46, 58);
+  check(&quot;慢走 30 秒 @80&quot;, run(o, true, 80, .20f, 30, 0, 0), run(s, true, 80, .20f, 30, 0, 0), 33, 42);
+  check(&quot;快走 30 秒 @170&quot;, run(o, true, 170, .35f, 30, 0, 0), run(s, true, 170, .35f, 30, 0, 0), 76, 88);
+  check(&quot;單次搖晃&quot;, run(o, false, 0, 0, 10, 1, 0), run(s, false, 0, 0, 10, 1, 0), 0, 0);
+  check(&quot;三下搖晃間隔 0.7 秒（等距，像走路）&quot;, run(o, false, 0, 0, 10, 3, .7f), run(s, false, 0, 0, 10, 3, .7f), 0, 3);
+  check(&quot;五下搖晃間隔忽快忽慢（0.35／1.05 秒）&quot;, run(o, false, 0, 0, 12, 5, .7f, true), run(s, false, 0, 0, 12, 5, .7f, true), 0, 0);
+  printf(fails ? &quot;\n有 %d 項未通過\n&quot; : &quot;\n全部通過\n&quot;, fails); return fails ? 1 : 0;
+}
+</pre></details></section><section id="power_modes"><h2>D　省電兩招：閒置關 Wi-Fi、長按深度睡眠</h2>
+<div class="meta"><span class="tag">進階</span><span class="ok">✓ arduino-cli 編譯通過</span></div>
+<p>Wi-Fi 是耗電大戶。閒置 5 分鐘自動關、按任意鍵重開；長按左鍵 3 秒進深度睡眠（ESP32 約 10 µA），按右鍵喚醒。這是「軟體關機」，兼顧省電與充電，對照講義 2.1 的開關取捨。</p>
+<h3>步驟</h3><ol><li><code>make ext NAME=power_modes</code> 燒進去，序列埠看訊息。</li><li>有電流表就串在電池線上量三種狀態。</li><li>搬進主韌體：在 <code>hal.h</code> 加 <code>hal_net_set_enabled()</code>、<code>hal_power_off()</code>，<code>app.cpp</code> 記錄最後操作時間。</li></ol>
+<h3>程式</h3><details><summary><code>firmware/extensions/power_modes/power_modes.ino</code>　<a download="power_modes.ino" href="data:text/plain;charset=utf-8;base64,Ly8g5bu25Ly45bCI5qGIIETvvJrnnIHpm7vlhanmi5vigJTigJTplpLnva7oh6rli5Xpl5wgV2ktRmnjgIHplbfmjInlt6bpjbXmt7HluqbnnaHnnKDvvIjou5/pq5Tpl5zmqZ/vvIkKLy8g542o56uL56S656+E6I2J56i/77yI5LiN5ZCr6J6i5bmV6IiH5oSf5ris5Zmo77yJ77yM5oqK6KeA5b+15byE5riF5qWa5b6M5YaN5pCs6YCyIGhhbF9lc3AzMi5jcHDvvI9hcHAuY3Bw44CCCi8vIOingOWvn+aWueazle+8muW6j+WIl+WfoOeci+ioiuaBr++8m+aciembu+a1geihqOeahOipseS4suWcqOmbu+axoOe3muS4iumHj+S4ieeorueLgOaFi+eahOmbu+a1geOAggovLyAgIFdpLUZpIOmWi+iRl++8mue0hCA4MO+9njI0MCBtQeOAgOOAgFdpLUZpIOmXnO+8mue0hCAyMO+9njQwIG1B44CA44CA5rex5bqm552h55yg77yaRVNQMzIg57SEIDEwIMK1Qe+8iOadv+S4iuWFtuS7lumbtuS7tuWPpuioiO+8iQojaW5jbHVkZSA8V2lGaS5oPgojaW5jbHVkZSA8ZXNwX3NsZWVwLmg+CiNpbmNsdWRlIDxkcml2ZXIvcnRjX2lvLmg+CgpzdGF0aWMgY29uc3QgaW50IFBJTl9CVE5fTCA9IDAsIFBJTl9CVE5fUiA9IDM1LCBQSU5fQURDX0VOID0gMTQ7CnN0YXRpYyBjb25zdCB1aW50MzJfdCBJRExFX1dJRklfT0ZGX01TID0gNSAqIDYwICogMTAwMDsgICAgLy8g6ZaS572uIDUg5YiG6ZCY6ZecIFdpLUZp77yI56S656+E5pmC5Y+v5pS5IDIwMDAw77yJCnN0YXRpYyBjb25zdCB1aW50MzJfdCBMT05HX1BSRVNTX01TICAgID0gMzAwMDsgICAgICAgICAgICAgLy8g6ZW35oyJIDMg56eS6Zec5qmfCnN0YXRpYyB1aW50MzJfdCBsYXN0X2FjdGl2aXR5ID0gMDsgc3RhdGljIGJvb2wgd2lmaV9vbiA9IGZhbHNlOwoKc3RhdGljIHZvaWQgd2lmaV9zdGFydCgpIHsgV2lGaS5tb2RlKFdJRklfQVApOyBXaUZpLnNvZnRBUCgi6KiI5q2l5ZmoLeecgembu+ekuuevhCIsICIxMjM0NTY3OCIpOyB3aWZpX29uID0gdHJ1ZTsgU2VyaWFsLnByaW50bG4oIltXaS1GaV0g6ZaL5ZWf77yMSVAgIiArIFdpRmkuc29mdEFQSVAoKS50b1N0cmluZygpKTsgfQpzdGF0aWMgdm9pZCB3aWZpX3N0b3AoKSAgeyBXaUZpLnNvZnRBUGRpc2Nvbm5lY3QodHJ1ZSk7IFdpRmkubW9kZShXSUZJX09GRik7IHdpZmlfb24gPSBmYWxzZTsgU2VyaWFsLnByaW50bG4oIltXaS1GaV0g6ZaS572u5aSq5LmF77yM5bey6Zec6ZaJ77yb5oyJ5Lu75oSP6Y216YeN6ZaLIik7IH0KCnN0YXRpYyB2b2lkIHBvd2VyX29mZigpIHsKICBTZXJpYWwucHJpbnRsbigiW+mbu+a6kF0g6YCy5YWl5rex5bqm552h55yg77yb5oyJ5Y+z6Y2177yIR1BJTzM177yJ5Zaa6YaSIik7IFNlcmlhbC5mbHVzaCgpOwogIGRpZ2l0YWxXcml0ZShQSU5fQURDX0VOLCBMT1cpOyAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgLy8g6Zec5o6J6Zu75rGg5YiG5aOT77yM55yB5LiA6bueCiAgLy8g55yf5qmf54mI6YKE6KaB77yadGZ0LnNsZWVwKCnvvI/og4zlhYnpl5zjgIFBRFhMMzQ1IOWvqyBQT1dFUl9DVEw9MCDpgLLlvoXmqZ8KICBlc3Bfc2xlZXBfZW5hYmxlX2V4dDBfd2FrZXVwKEdQSU9fTlVNXzM1LCAwKTsgICAgICAgICAgICAgICAgICAgIC8vIEdQSU8zNSDmmK8gUlRDIOiFs++8jOaLieS9juWWmumGku+8iOadv+S4iuacieS4iuaLie+8iQogIGVzcF9kZWVwX3NsZWVwX3N0YXJ0KCk7ICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgLy8g5LiN5pyD5Zue5L6G77yb5Zaa6YaS562J5pa86YeN5paw6ZaL5qmfCn0KCnZvaWQgc2V0dXAoKSB7CiAgU2VyaWFsLmJlZ2luKDExNTIwMCk7IGRlbGF5KDIwMCk7CiAgcGluTW9kZShQSU5fQlROX0wsIElOUFVUX1BVTExVUCk7IHBpbk1vZGUoUElOX0JUTl9SLCBJTlBVVCk7IHBpbk1vZGUoUElOX0FEQ19FTiwgT1VUUFVUKTsgZGlnaXRhbFdyaXRlKFBJTl9BRENfRU4sIEhJR0gpOwogIGF1dG8gY2F1c2UgPSBlc3Bfc2xlZXBfZ2V0X3dha2V1cF9jYXVzZSgpOwogIFNlcmlhbC5wcmludGxuKGNhdXNlID09IEVTUF9TTEVFUF9XQUtFVVBfRVhUMCA/ICJb6Zu75rqQXSDnlLHmjInpjbXllprphpIiIDogIlvpm7vmupBdIOS4gOiIrOmWi+apnyIpOwogIHdpZmlfc3RhcnQoKTsgbGFzdF9hY3Rpdml0eSA9IG1pbGxpcygpOwogIFNlcmlhbC5wcmludGxuKCLlt6bpjbXplbfmjIkgMyDnp5Ig4oaSIOa3seW6puedoeecoO+8m+S7u+S9lemNtSDihpIg6YeN6Kit6ZaS572u6KiI5pmC5Lim6YeN6ZaLIFdpLUZpIik7Cn0KCnZvaWQgbG9vcCgpIHsKICB1aW50MzJfdCBub3cgPSBtaWxsaXMoKTsKICBib29sIGwgPSBkaWdpdGFsUmVhZChQSU5fQlROX0wpID09IExPVywgciA9IGRpZ2l0YWxSZWFkKFBJTl9CVE5fUikgPT0gTE9XOwogIHN0YXRpYyB1aW50MzJfdCBsX2Rvd24gPSAwOwogIGlmIChsICYmICFsX2Rvd24pIGxfZG93biA9IG5vdzsKICBpZiAoIWwpIGxfZG93biA9IDA7CiAgaWYgKGxfZG93biAmJiBub3cgLSBsX2Rvd24gPj0gTE9OR19QUkVTU19NUykgcG93ZXJfb2ZmKCk7CiAgaWYgKGwgfHwgcikgeyBsYXN0X2FjdGl2aXR5ID0gbm93OyBpZiAoIXdpZmlfb24pIHdpZmlfc3RhcnQoKTsgfQogIGlmICh3aWZpX29uICYmIG5vdyAtIGxhc3RfYWN0aXZpdHkgPj0gSURMRV9XSUZJX09GRl9NUykgd2lmaV9zdG9wKCk7CiAgZGVsYXkoMjApOwp9Cg==">下載</a>　<span class="n">44 行</span></summary><pre>// 延伸專案 D：省電兩招——閒置自動關 Wi-Fi、長按左鍵深度睡眠（軟體關機）
+// 獨立示範草稿（不含螢幕與感測器），把觀念弄清楚後再搬進 hal_esp32.cpp／app.cpp。
+// 觀察方法：序列埠看訊息；有電流表的話串在電池線上量三種狀態的電流。
+//   Wi-Fi 開著：約 80～240 mA　　Wi-Fi 關：約 20～40 mA　　深度睡眠：ESP32 約 10 µA（板上其他零件另計）
+#include &lt;WiFi.h&gt;
+#include &lt;esp_sleep.h&gt;
+#include &lt;driver/rtc_io.h&gt;
+
+static const int PIN_BTN_L = 0, PIN_BTN_R = 35, PIN_ADC_EN = 14;
+static const uint32_t IDLE_WIFI_OFF_MS = 5 * 60 * 1000;    // 閒置 5 分鐘關 Wi-Fi（示範時可改 20000）
+static const uint32_t LONG_PRESS_MS    = 3000;             // 長按 3 秒關機
+static uint32_t last_activity = 0; static bool wifi_on = false;
+
+static void wifi_start() { WiFi.mode(WIFI_AP); WiFi.softAP(&quot;計步器-省電示範&quot;, &quot;12345678&quot;); wifi_on = true; Serial.println(&quot;[Wi-Fi] 開啟，IP &quot; + WiFi.softAPIP().toString()); }
+static void wifi_stop()  { WiFi.softAPdisconnect(true); WiFi.mode(WIFI_OFF); wifi_on = false; Serial.println(&quot;[Wi-Fi] 閒置太久，已關閉；按任意鍵重開&quot;); }
+
+static void power_off() {
+  Serial.println(&quot;[電源] 進入深度睡眠；按右鍵（GPIO35）喚醒&quot;); Serial.flush();
+  digitalWrite(PIN_ADC_EN, LOW);                                   // 關掉電池分壓，省一點
+  // 真機版還要：tft.sleep()／背光關、ADXL345 寫 POWER_CTL=0 進待機
+  esp_sleep_enable_ext0_wakeup(GPIO_NUM_35, 0);                    // GPIO35 是 RTC 腳，拉低喚醒（板上有上拉）
+  esp_deep_sleep_start();                                          // 不會回來；喚醒等於重新開機
+}
+
+void setup() {
+  Serial.begin(115200); delay(200);
+  pinMode(PIN_BTN_L, INPUT_PULLUP); pinMode(PIN_BTN_R, INPUT); pinMode(PIN_ADC_EN, OUTPUT); digitalWrite(PIN_ADC_EN, HIGH);
+  auto cause = esp_sleep_get_wakeup_cause();
+  Serial.println(cause == ESP_SLEEP_WAKEUP_EXT0 ? &quot;[電源] 由按鍵喚醒&quot; : &quot;[電源] 一般開機&quot;);
+  wifi_start(); last_activity = millis();
+  Serial.println(&quot;左鍵長按 3 秒 → 深度睡眠；任何鍵 → 重設閒置計時並重開 Wi-Fi&quot;);
+}
+
+void loop() {
+  uint32_t now = millis();
+  bool l = digitalRead(PIN_BTN_L) == LOW, r = digitalRead(PIN_BTN_R) == LOW;
+  static uint32_t l_down = 0;
+  if (l &amp;&amp; !l_down) l_down = now;
+  if (!l) l_down = 0;
+  if (l_down &amp;&amp; now - l_down &gt;= LONG_PRESS_MS) power_off();
+  if (l || r) { last_activity = now; if (!wifi_on) wifi_start(); }
+  if (wifi_on &amp;&amp; now - last_activity &gt;= IDLE_WIFI_OFF_MS) wifi_stop();
+  delay(20);
+}
+</pre></details></section><section id="pc_backend"><h2>E　電腦端後台：裝置上傳、電腦收集（原作說明書的架構）</h2>
+<div class="meta"><span class="tag">進階</span><span class="ok">✓ Python 可執行；裝置端 arduino-cli 編譯通過</span></div>
+<p>新版是「裝置當伺服器」，一次只服務幾個人；全班幾十台時要反過來：裝置連家用 Wi-Fi、每分鐘 POST 到電腦，電腦存 CSV 並顯示總表。只用 Python 內建模組。</p>
+<h3>步驟</h3><ol><li>電腦跑 <code>python3 pc_backend.py</code>，記下電腦 IP。</li><li>改 <code>pc_backend.ino</code> 前三行（Wi-Fi、IP），<code>make ext NAME=pc_backend</code> 燒錄。</li><li>開 <code>http://電腦IP:8080/</code> 看總表；討論兩種架構各適合什麼場景。</li></ol>
+<h3>程式</h3><details><summary><code>firmware/extensions/pc_backend/pc_backend.py</code>　<a download="pc_backend.py" href="data:text/plain;charset=utf-8;base64,IyEvdXNyL2Jpbi9lbnYgcHl0aG9uMwoiIiLlu7bkvLjlsIjmoYggRe+8muWOn+S9nOiqquaYjuabuOaDs+WBmueahOOAjOmbu+iFpuerr+W+jOWPsOOAjeKAlOKAlOeUqOacgOWwkeeahOeoi+W8j+aUtuijnee9ruS4iuWCs+eahOatpeaVuO+8jOWtmOaIkCBDU1bvvIzkuKbmj5DkvpvnsKHllq7ntrLpoIHjgIIK5Y+q55SoIFB5dGhvbiDlhaflu7rmqKHntYTvvIzkuI3lv4Xlronoo53ku7vkvZXmnbHopb/jgIIKICBweXRob24zIGZpcm13YXJlL2V4dGVuc2lvbnMvcGNfYmFja2VuZC9wY19iYWNrZW5kLnB5ICAgICAgICAgICAgIyDnm6Pogb0gMC4wLjAuMDo4MDgwCuijnee9ruerr++8iOimi+WQjOizh+aWmeWkviBwY19iYWNrZW5kLmlub++8ieWcqOmAo+S4iuWutueUqCBXaS1GaSDlvozvvIzmr4/liIbpkJggUE9TVCAvYXBpL3VwbG9hZO+8jOWFp+Wuue+8mgogIHsibWFjIjoiMkM6QkM6Li4uIiwic3RlcHMiOjEyMzQsImRheSI6MjA3MzIsInBvbW8iOjIsImJhdHRlcnlfdiI6My45NX0K57ay6aCB77yaaHR0cDovLzzpm7vohaZJUD46ODA4MC/jgIDnnIvmiYDmnInoo53nva7nmoTmnIDmlrDmlbjlrZfvvJtDU1Yg5ZyoIHBjX2JhY2tlbmRfbG9nLmNzduOAggrmlZnlrbjpu57vvJrpgJnlsLHmmK/jgIzoqrDnlbbkvLrmnI3lmajjgI3nmoTlj6bkuIDnqK7pgbjmk4figJTigJToo53nva7nlbblrqLmiLbnq6/kuIrlgrPvvIzpm7vohabnlbbkvLrmnI3lmajmlLbpm4bjgILlpJrlj7Doo53nva7vvIjlhajnj63vvInmmYLpgJnnqK7mnrbmp4vmiY3mkpDlvpfkvY/jgIIiIiIKaW1wb3J0IGpzb24sIGNzdiwgb3MsIHRpbWUKZnJvbSBodHRwLnNlcnZlciBpbXBvcnQgQmFzZUhUVFBSZXF1ZXN0SGFuZGxlciwgVGhyZWFkaW5nSFRUUFNlcnZlcgoKTE9HID0gb3MucGF0aC5qb2luKG9zLnBhdGguZGlybmFtZShvcy5wYXRoLmFic3BhdGgoX19maWxlX18pKSwgJ3BjX2JhY2tlbmRfbG9nLmNzdicpCmxhdGVzdCA9IHt9CgpjbGFzcyBIKEJhc2VIVFRQUmVxdWVzdEhhbmRsZXIpOgogICAgZGVmIF9zZW5kKHNlbGYsIGNvZGUsIGJvZHksIGN0eXBlPSdhcHBsaWNhdGlvbi9qc29uOyBjaGFyc2V0PXV0Zi04Jyk6CiAgICAgICAgYiA9IGJvZHkuZW5jb2RlKCd1dGYtOCcpOyBzZWxmLnNlbmRfcmVzcG9uc2UoY29kZSk7IHNlbGYuc2VuZF9oZWFkZXIoJ0NvbnRlbnQtVHlwZScsIGN0eXBlKTsgc2VsZi5zZW5kX2hlYWRlcignQ29udGVudC1MZW5ndGgnLCBzdHIobGVuKGIpKSk7IHNlbGYuZW5kX2hlYWRlcnMoKTsgc2VsZi53ZmlsZS53cml0ZShiKQogICAgZGVmIGRvX1BPU1Qoc2VsZik6CiAgICAgICAgaWYgc2VsZi5wYXRoICE9ICcvYXBpL3VwbG9hZCc6IHJldHVybiBzZWxmLl9zZW5kKDQwNCwgJ3siZXJyb3IiOiJub3QgZm91bmQifScpCiAgICAgICAgdHJ5OgogICAgICAgICAgICBkID0ganNvbi5sb2FkcyhzZWxmLnJmaWxlLnJlYWQoaW50KHNlbGYuaGVhZGVycy5nZXQoJ0NvbnRlbnQtTGVuZ3RoJywgMCkpKSkKICAgICAgICAgICAgbWFjID0gc3RyKGQuZ2V0KCdtYWMnLCBzZWxmLmNsaWVudF9hZGRyZXNzWzBdKSkKICAgICAgICAgICAgcm93ID0geyd0aW1lJzogdGltZS5zdHJmdGltZSgnJVktJW0tJWQgJUg6JU06JVMnKSwgJ21hYyc6IG1hYywgJ3N0ZXBzJzogaW50KGRbJ3N0ZXBzJ10pLCAnZGF5JzogaW50KGQuZ2V0KCdkYXknLCAtMSkpLCAncG9tbyc6IGludChkLmdldCgncG9tbycsIDApKSwgJ2JhdHRlcnlfdic6IGZsb2F0KGQuZ2V0KCdiYXR0ZXJ5X3YnLCAwKSl9CiAgICAgICAgZXhjZXB0IEV4Y2VwdGlvbiBhcyBlOiByZXR1cm4gc2VsZi5fc2VuZCg0MDAsIGpzb24uZHVtcHMoeydlcnJvcic6IGYnYmFkIGpzb246IHtlfSd9KSkKICAgICAgICBuZXcgPSBub3Qgb3MucGF0aC5leGlzdHMoTE9HKQogICAgICAgIHdpdGggb3BlbihMT0csICdhJywgbmV3bGluZT0nJykgYXMgZjoKICAgICAgICAgICAgdyA9IGNzdi5EaWN0V3JpdGVyKGYsIGZpZWxkbmFtZXM9bGlzdChyb3cpKTsgbmV3IGFuZCB3LndyaXRlaGVhZGVyKCk7IHcud3JpdGVyb3cocm93KQogICAgICAgIGxhdGVzdFttYWNdID0gcm93OyBwcmludChyb3cpOyBzZWxmLl9zZW5kKDIwMCwgJ3sic3RhdHVzIjoib2sifScpCiAgICBkZWYgZG9fR0VUKHNlbGYpOgogICAgICAgIGlmIHNlbGYucGF0aCA9PSAnL2FwaS9sYXRlc3QnOiByZXR1cm4gc2VsZi5fc2VuZCgyMDAsIGpzb24uZHVtcHMobGF0ZXN0LCBlbnN1cmVfYXNjaWk9RmFsc2UpKQogICAgICAgIHJvd3MgPSAnJy5qb2luKGYiPHRyPjx0ZD57clsnbWFjJ119PC90ZD48dGQ+e3JbJ3N0ZXBzJ119PC90ZD48dGQ+e3JbJ3BvbW8nXX08L3RkPjx0ZD57clsnYmF0dGVyeV92J106LjJmfTwvdGQ+PHRkPntyWyd0aW1lJ119PC90ZD48L3RyPiIgZm9yIHIgaW4gbGF0ZXN0LnZhbHVlcygpKQogICAgICAgIHNlbGYuX3NlbmQoMjAwLCBmIiIiPCFkb2N0eXBlIGh0bWw+PG1ldGEgY2hhcnNldD11dGYtOD48dGl0bGU+6KiI5q2l5Zmo5b6M5Y+wPC90aXRsZT48bWV0YSBodHRwLWVxdWl2PXJlZnJlc2ggY29udGVudD01Pgo8c3R5bGU+Ym9keXt7Zm9udC1mYW1pbHk6c3lzdGVtLXVpO3BhZGRpbmc6MjBweH19dGFibGV7e2JvcmRlci1jb2xsYXBzZTpjb2xsYXBzZX19dGQsdGh7e2JvcmRlcjoxcHggc29saWQgI2NjYztwYWRkaW5nOjZweCAxMnB4fX08L3N0eWxlPgo8aDE+6KiI5q2l5Zmo5b6M5Y+wPC9oMT48cD7mr48gNSDnp5Lmm7TmlrDvvJvljp/lp4vntIDpjITlnKggcGNfYmFja2VuZF9sb2cuY3N2PC9wPgo8dGFibGU+PHRyPjx0aD7oo53nva48L3RoPjx0aD7mraXmlbg8L3RoPjx0aD7nlarojITpkJg8L3RoPjx0aD7pm7vmsaAgVjwvdGg+PHRoPuacgOW+jOS4iuWCszwvdGg+PC90cj57cm93cyBvciAnPHRyPjx0ZCBjb2xzcGFuPTU+6YKE5rKS5pyJ6KOd572u5LiK5YKzPC90ZD48L3RyPid9PC90YWJsZT4iIiIsICd0ZXh0L2h0bWw7IGNoYXJzZXQ9dXRmLTgnKQogICAgZGVmIGxvZ19tZXNzYWdlKHNlbGYsICphKTogcGFzcwoKaWYgX19uYW1lX18gPT0gJ19fbWFpbl9fJzoKICAgIHByaW50KCflvozlj7DllZ/li5XvvJpodHRwOi8vMC4wLjAuMDo4MDgwL+OAgO+8iOijnee9ruimgeWSjOmbu+iFpuWcqOWQjOS4gOWAiyBXaS1Gae+8iScpOyBUaHJlYWRpbmdIVFRQU2VydmVyKCgnMC4wLjAuMCcsIDgwODApLCBIKS5zZXJ2ZV9mb3JldmVyKCkK">下載</a>　<span class="n">39 行</span></summary><pre>#!/usr/bin/env python3
+&quot;&quot;&quot;延伸專案 E：原作說明書想做的「電腦端後台」——用最少的程式收裝置上傳的步數，存成 CSV，並提供簡單網頁。
+只用 Python 內建模組，不必安裝任何東西。
+  python3 firmware/extensions/pc_backend/pc_backend.py            # 監聽 0.0.0.0:8080
+裝置端（見同資料夾 pc_backend.ino）在連上家用 Wi-Fi 後，每分鐘 POST /api/upload，內容：
+  {&quot;mac&quot;:&quot;2C:BC:...&quot;,&quot;steps&quot;:1234,&quot;day&quot;:20732,&quot;pomo&quot;:2,&quot;battery_v&quot;:3.95}
+網頁：http://&lt;電腦IP&gt;:8080/　看所有裝置的最新數字；CSV 在 pc_backend_log.csv。
+教學點：這就是「誰當伺服器」的另一種選擇——裝置當客戶端上傳，電腦當伺服器收集。多台裝置（全班）時這種架構才撐得住。&quot;&quot;&quot;
+import json, csv, os, time
+from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
+
+LOG = os.path.join(os.path.dirname(os.path.abspath(__file__)), &#x27;pc_backend_log.csv&#x27;)
+latest = {}
+
+class H(BaseHTTPRequestHandler):
+    def _send(self, code, body, ctype=&#x27;application/json; charset=utf-8&#x27;):
+        b = body.encode(&#x27;utf-8&#x27;); self.send_response(code); self.send_header(&#x27;Content-Type&#x27;, ctype); self.send_header(&#x27;Content-Length&#x27;, str(len(b))); self.end_headers(); self.wfile.write(b)
+    def do_POST(self):
+        if self.path != &#x27;/api/upload&#x27;: return self._send(404, &#x27;{&quot;error&quot;:&quot;not found&quot;}&#x27;)
+        try:
+            d = json.loads(self.rfile.read(int(self.headers.get(&#x27;Content-Length&#x27;, 0))))
+            mac = str(d.get(&#x27;mac&#x27;, self.client_address[0]))
+            row = {&#x27;time&#x27;: time.strftime(&#x27;%Y-%m-%d %H:%M:%S&#x27;), &#x27;mac&#x27;: mac, &#x27;steps&#x27;: int(d[&#x27;steps&#x27;]), &#x27;day&#x27;: int(d.get(&#x27;day&#x27;, -1)), &#x27;pomo&#x27;: int(d.get(&#x27;pomo&#x27;, 0)), &#x27;battery_v&#x27;: float(d.get(&#x27;battery_v&#x27;, 0))}
+        except Exception as e: return self._send(400, json.dumps({&#x27;error&#x27;: f&#x27;bad json: {e}&#x27;}))
+        new = not os.path.exists(LOG)
+        with open(LOG, &#x27;a&#x27;, newline=&#x27;&#x27;) as f:
+            w = csv.DictWriter(f, fieldnames=list(row)); new and w.writeheader(); w.writerow(row)
+        latest[mac] = row; print(row); self._send(200, &#x27;{&quot;status&quot;:&quot;ok&quot;}&#x27;)
+    def do_GET(self):
+        if self.path == &#x27;/api/latest&#x27;: return self._send(200, json.dumps(latest, ensure_ascii=False))
+        rows = &#x27;&#x27;.join(f&quot;&lt;tr&gt;&lt;td&gt;{r[&#x27;mac&#x27;]}&lt;/td&gt;&lt;td&gt;{r[&#x27;steps&#x27;]}&lt;/td&gt;&lt;td&gt;{r[&#x27;pomo&#x27;]}&lt;/td&gt;&lt;td&gt;{r[&#x27;battery_v&#x27;]:.2f}&lt;/td&gt;&lt;td&gt;{r[&#x27;time&#x27;]}&lt;/td&gt;&lt;/tr&gt;&quot; for r in latest.values())
+        self._send(200, f&quot;&quot;&quot;&lt;!doctype html&gt;&lt;meta charset=utf-8&gt;&lt;title&gt;計步器後台&lt;/title&gt;&lt;meta http-equiv=refresh content=5&gt;
+&lt;style&gt;body{{font-family:system-ui;padding:20px}}table{{border-collapse:collapse}}td,th{{border:1px solid #ccc;padding:6px 12px}}&lt;/style&gt;
+&lt;h1&gt;計步器後台&lt;/h1&gt;&lt;p&gt;每 5 秒更新；原始紀錄在 pc_backend_log.csv&lt;/p&gt;
+&lt;table&gt;&lt;tr&gt;&lt;th&gt;裝置&lt;/th&gt;&lt;th&gt;步數&lt;/th&gt;&lt;th&gt;番茄鐘&lt;/th&gt;&lt;th&gt;電池 V&lt;/th&gt;&lt;th&gt;最後上傳&lt;/th&gt;&lt;/tr&gt;{rows or &#x27;&lt;tr&gt;&lt;td colspan=5&gt;還沒有裝置上傳&lt;/td&gt;&lt;/tr&gt;&#x27;}&lt;/table&gt;&quot;&quot;&quot;, &#x27;text/html; charset=utf-8&#x27;)
+    def log_message(self, *a): pass
+
+if __name__ == &#x27;__main__&#x27;:
+    print(&#x27;後台啟動：http://0.0.0.0:8080/　（裝置要和電腦在同一個 Wi-Fi）&#x27;); ThreadingHTTPServer((&#x27;0.0.0.0&#x27;, 8080), H).serve_forever()
+</pre></details><details><summary><code>firmware/extensions/pc_backend/pc_backend.ino</code>　<a download="pc_backend.ino" href="data:text/plain;charset=utf-8;base64,Ly8g5bu25Ly45bCI5qGIIEXvvIjoo53nva7nq6/vvInvvJrpgKPlrrbnlKggV2ktRmnvvIzmr4/liIbpkJjmiormraXmlbggUE9TVCDliLDpm7vohablvozlj7DvvIhwY19iYWNrZW5kLnB577yJCi8vIOeNqOeri+ekuuevhOiNieeov++8muatpeaVuOeUqOWBh+izh+aWmemBnuWinu+8m+aQrOmAsuS4u+mfjOmrlOaZguaKiiBmYWtlX3N0ZXBzIOaPm+aIkCBwZWRvLnN0ZXBzKCnjgIHpm7vmsaDmj5vmiJAgaGFsX2JhdHRlcnlfdm9sdHMoKeOAggovLyDmlLnpgJnkuInooYzvvJoKc3RhdGljIGNvbnN0IGNoYXIqIFdJRklfU1NJRCA9ICLkvaDnmoRXaS1GaeWQjeeosSI7CnN0YXRpYyBjb25zdCBjaGFyKiBXSUZJX1BBU1MgPSAi5L2g55qEV2ktRmnlr4bnorwiOwpzdGF0aWMgY29uc3QgY2hhciogQkFDS0VORCAgID0gImh0dHA6Ly8xOTIuMTY4LjEuMTAwOjgwODAvYXBpL3VwbG9hZCI7ICAgLy8g6LeRIHBjX2JhY2tlbmQucHkg6YKj5Y+w6Zu76IWm55qEIElQCgojaW5jbHVkZSA8V2lGaS5oPgojaW5jbHVkZSA8SFRUUENsaWVudC5oPgoKc3RhdGljIHVpbnQzMl90IGZha2Vfc3RlcHMgPSAwLCBsYXN0X3Bvc3QgPSAwOwoKc3RhdGljIGJvb2wgdXBsb2FkKHVpbnQzMl90IHN0ZXBzLCBmbG9hdCBiYXR0ZXJ5X3YpIHsKICBpZiAoV2lGaS5zdGF0dXMoKSAhPSBXTF9DT05ORUNURUQpIHJldHVybiBmYWxzZTsKICBIVFRQQ2xpZW50IGh0dHA7IGh0dHAuYmVnaW4oQkFDS0VORCk7IGh0dHAuYWRkSGVhZGVyKCJDb250ZW50LVR5cGUiLCAiYXBwbGljYXRpb24vanNvbiIpOwogIGNoYXIgYm9keVsxNjBdOwogIHNucHJpbnRmKGJvZHksIHNpemVvZiBib2R5LCAie1wibWFjXCI6XCIlc1wiLFwic3RlcHNcIjoldSxcImRheVwiOiVkLFwicG9tb1wiOiVkLFwiYmF0dGVyeV92XCI6JS4yZn0iLCBXaUZpLm1hY0FkZHJlc3MoKS5jX3N0cigpLCBzdGVwcywgLTEsIDAsIGJhdHRlcnlfdik7CiAgaW50IGNvZGUgPSBodHRwLlBPU1QoYm9keSk7IGh0dHAuZW5kKCk7CiAgU2VyaWFsLnByaW50ZigiW+S4iuWCs10gJXMg4oaSIEhUVFAgJWRcbiIsIGJvZHksIGNvZGUpOwogIHJldHVybiBjb2RlID09IDIwMDsKfQoKdm9pZCBzZXR1cCgpIHsKICBTZXJpYWwuYmVnaW4oMTE1MjAwKTsgZGVsYXkoMjAwKTsKICBXaUZpLm1vZGUoV0lGSV9TVEEpOyBXaUZpLmJlZ2luKFdJRklfU1NJRCwgV0lGSV9QQVNTKTsKICBTZXJpYWwucHJpbnRmKCJbV2ktRmldIOmAo+e3muWIsCAlcyIsIFdJRklfU1NJRCk7CiAgZm9yIChpbnQgaSA9IDA7IGkgPCA0MCAmJiBXaUZpLnN0YXR1cygpICE9IFdMX0NPTk5FQ1RFRDsgaSsrKSB7IGRlbGF5KDI1MCk7IFNlcmlhbC5wcmludCgnLicpOyB9CiAgU2VyaWFsLnByaW50bG4oV2lGaS5zdGF0dXMoKSA9PSBXTF9DT05ORUNURUQgPyAiXG5bV2ktRmldIOW3sumAo+e3miAiICsgV2lGaS5sb2NhbElQKCkudG9TdHJpbmcoKSA6ICJcbltXaS1GaV0g6YCj5LiN5LiK77yM5LmL5b6M5q+P5YiG6ZCY6YeN6KmmIik7Cn0KCnZvaWQgbG9vcCgpIHsKICB1aW50MzJfdCBub3cgPSBtaWxsaXMoKTsKICBmYWtlX3N0ZXBzICs9IDE7IGRlbGF5KDUwMCk7ICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAvLyDlgYfoo53mr48gMC41IOenkui1sOS4gOatpQogIGlmIChub3cgLSBsYXN0X3Bvc3QgPj0gNjAwMDAgfHwgbGFzdF9wb3N0ID09IDApIHsKICAgIGxhc3RfcG9zdCA9IG5vdzsKICAgIGlmIChXaUZpLnN0YXR1cygpICE9IFdMX0NPTk5FQ1RFRCkgV2lGaS5yZWNvbm5lY3QoKTsKICAgIHVwbG9hZChmYWtlX3N0ZXBzLCAzLjlmKTsKICB9Cn0K">下載</a>　<span class="n">39 行</span></summary><pre>// 延伸專案 E（裝置端）：連家用 Wi-Fi，每分鐘把步數 POST 到電腦後台（pc_backend.py）
+// 獨立示範草稿：步數用假資料遞增；搬進主韌體時把 fake_steps 換成 pedo.steps()、電池換成 hal_battery_volts()。
+// 改這三行：
+static const char* WIFI_SSID = &quot;你的Wi-Fi名稱&quot;;
+static const char* WIFI_PASS = &quot;你的Wi-Fi密碼&quot;;
+static const char* BACKEND   = &quot;http://192.168.1.100:8080/api/upload&quot;;   // 跑 pc_backend.py 那台電腦的 IP
+
+#include &lt;WiFi.h&gt;
+#include &lt;HTTPClient.h&gt;
+
+static uint32_t fake_steps = 0, last_post = 0;
+
+static bool upload(uint32_t steps, float battery_v) {
+  if (WiFi.status() != WL_CONNECTED) return false;
+  HTTPClient http; http.begin(BACKEND); http.addHeader(&quot;Content-Type&quot;, &quot;application/json&quot;);
+  char body[160];
+  snprintf(body, sizeof body, &quot;{\&quot;mac\&quot;:\&quot;%s\&quot;,\&quot;steps\&quot;:%u,\&quot;day\&quot;:%d,\&quot;pomo\&quot;:%d,\&quot;battery_v\&quot;:%.2f}&quot;, WiFi.macAddress().c_str(), steps, -1, 0, battery_v);
+  int code = http.POST(body); http.end();
+  Serial.printf(&quot;[上傳] %s → HTTP %d\n&quot;, body, code);
+  return code == 200;
+}
+
+void setup() {
+  Serial.begin(115200); delay(200);
+  WiFi.mode(WIFI_STA); WiFi.begin(WIFI_SSID, WIFI_PASS);
+  Serial.printf(&quot;[Wi-Fi] 連線到 %s&quot;, WIFI_SSID);
+  for (int i = 0; i &lt; 40 &amp;&amp; WiFi.status() != WL_CONNECTED; i++) { delay(250); Serial.print(&#x27;.&#x27;); }
+  Serial.println(WiFi.status() == WL_CONNECTED ? &quot;\n[Wi-Fi] 已連線 &quot; + WiFi.localIP().toString() : &quot;\n[Wi-Fi] 連不上，之後每分鐘重試&quot;);
+}
+
+void loop() {
+  uint32_t now = millis();
+  fake_steps += 1; delay(500);                                   // 假裝每 0.5 秒走一步
+  if (now - last_post &gt;= 60000 || last_post == 0) {
+    last_post = now;
+    if (WiFi.status() != WL_CONNECTED) WiFi.reconnect();
+    upload(fake_steps, 3.9f);
+  }
+}
+</pre></details></section><section id="mpu6050"><h2>F　把 ADXL345 換成 MPU6050（接線不變）</h2>
+<div class="meta"><span class="tag">進階</span><span class="ok">✓ `make build-mpu` 編譯通過</span></div>
+<p>主韌體已內建兩種讀法：編譯時加 <code>-DACCEL_MPU6050</code> 就改讀 MPU6050（0x68、16384 LSB/g）。接線完全相同，只有讀暫存器那一小段不同——這就是硬體抽象層的價值。</p>
+<h3>步驟</h3><ol><li><code>make build-mpu</code> 編譯、<code>make flash PORT=…</code> 前把 Makefile 的 build 改成 build-mpu 或直接用 arduino-cli upload build/out_mpu。</li><li>走 100 步比較兩顆的誤差。</li><li>進一步：用 MPU6050 的陀螺儀做「翻轉手腕亮螢幕」。</li></ol>
+<h3>程式</h3><details><summary><code>firmware/hal_esp32/hal_esp32.cpp</code>　<a download="hal_esp32.cpp" href="data:text/plain;charset=utf-8;base64,Ly8gSEFMIOeahCBFU1AzMiDlr6bkvZzvvJpMSUxZR08gVC1EaXNwbGF5ICsgQURYTDM0NSArIOicgumztOWZqOOAggovLyBBcmR1aW5vIEVTUDMyIGNvcmUgMy4zLnjjgIFMb3Z5YW5HRlggMS4yLnjjgIIKI2luY2x1ZGUgPEFyZHVpbm8uaD4KI2luY2x1ZGUgPFdpcmUuaD4KI2luY2x1ZGUgPFByZWZlcmVuY2VzLmg+CiNpbmNsdWRlIDxXaUZpLmg+CiNpbmNsdWRlIDxXZWJTZXJ2ZXIuaD4KI2RlZmluZSBMR0ZYX1VTRV9WMQojaW5jbHVkZSA8TG92eWFuR0ZYLmhwcD4KI2luY2x1ZGUgInNyYy9oYWwvaGFsLmgiCiNpbmNsdWRlICJzcmMvYXBwL2FwcC5oIgoKdm9pZCBoYWxfZXNwMzJfcG9sbCgpOyAgIC8vIOeUsSAuaW5vIOavj+WciOWRvOWPq++8iOiZleeQhiBIVFRQ77yJCgovLyAtLS0tLS0tLS0tIOiFs+S9jSAtLS0tLS0tLS0tCnN0YXRpYyBjb25zdCBpbnQgUElOX0JUTl9MID0gMCwgUElOX0JUTl9SID0gMzUsIFBJTl9CVVpaRVIgPSAyNSwgUElOX1ZCQVQgPSAzNDsKc3RhdGljIGNvbnN0IGludCBQSU5fU0RBID0gMjEsIFBJTl9TQ0wgPSAyMjsKc3RhdGljIGNvbnN0IGludCBQSU5fVEZUX1NDTEsgPSAxOCwgUElOX1RGVF9NT1NJID0gMTksIFBJTl9URlRfQ1MgPSA1LCBQSU5fVEZUX0RDID0gMTYsIFBJTl9URlRfUlNUID0gMjMsIFBJTl9URlRfQkwgPSA0OwpzdGF0aWMgY29uc3QgdWludDhfdCBBRFhMX0FERFIgPSAweDUzOwoKLy8gLS0tLS0tLS0tLSDonqLluZUgLS0tLS0tLS0tLQpjbGFzcyBMR0ZYX1REaXNwbGF5IDogcHVibGljIGxnZng6OkxHRlhfRGV2aWNlIHsKICBsZ2Z4OjpQYW5lbF9TVDc3ODkgcGFuZWxfOyBsZ2Z4OjpCdXNfU1BJIGJ1c187IGxnZng6OkxpZ2h0X1BXTSBsaWdodF87CnB1YmxpYzoKICBMR0ZYX1REaXNwbGF5KCkgewogICAgeyBhdXRvIGMgPSBidXNfLmNvbmZpZygpOwogICAgICBjLnNwaV9ob3N0ID0gVlNQSV9IT1NUOyBjLnNwaV9tb2RlID0gMDsgYy5mcmVxX3dyaXRlID0gNDAwMDAwMDA7IGMuZnJlcV9yZWFkID0gMTYwMDAwMDA7CiAgICAgIGMuc3BpXzN3aXJlID0gdHJ1ZTsgYy51c2VfbG9jayA9IHRydWU7IGMuZG1hX2NoYW5uZWwgPSBTUElfRE1BX0NIX0FVVE87CiAgICAgIGMucGluX3NjbGsgPSBQSU5fVEZUX1NDTEs7IGMucGluX21vc2kgPSBQSU5fVEZUX01PU0k7IGMucGluX21pc28gPSAtMTsgYy5waW5fZGMgPSBQSU5fVEZUX0RDOwogICAgICBidXNfLmNvbmZpZyhjKTsgcGFuZWxfLnNldEJ1cygmYnVzXyk7IH0KICAgIHsgYXV0byBjID0gcGFuZWxfLmNvbmZpZygpOwogICAgICBjLnBpbl9jcyA9IFBJTl9URlRfQ1M7IGMucGluX3JzdCA9IFBJTl9URlRfUlNUOyBjLnBpbl9idXN5ID0gLTE7CiAgICAgIGMucGFuZWxfd2lkdGggPSAxMzU7IGMucGFuZWxfaGVpZ2h0ID0gMjQwOyBjLm9mZnNldF94ID0gNTI7IGMub2Zmc2V0X3kgPSA0MDsKICAgICAgYy5vZmZzZXRfcm90YXRpb24gPSAwOyBjLnJlYWRhYmxlID0gZmFsc2U7IGMuaW52ZXJ0ID0gdHJ1ZTsgYy5yZ2Jfb3JkZXIgPSBmYWxzZTsgYy5kbGVuXzE2Yml0ID0gZmFsc2U7IGMuYnVzX3NoYXJlZCA9IGZhbHNlOwogICAgICBwYW5lbF8uY29uZmlnKGMpOyB9CiAgICB7IGF1dG8gYyA9IGxpZ2h0Xy5jb25maWcoKTsgYy5waW5fYmwgPSBQSU5fVEZUX0JMOyBjLmludmVydCA9IGZhbHNlOyBjLmZyZXEgPSA0NDEwMDsgYy5wd21fY2hhbm5lbCA9IDc7CiAgICAgIGxpZ2h0Xy5jb25maWcoYyk7IHBhbmVsXy5zZXRMaWdodCgmbGlnaHRfKTsgfQogICAgc2V0UGFuZWwoJnBhbmVsXyk7CiAgfQp9OwpzdGF0aWMgTEdGWF9URGlzcGxheSB0ZnQ7CnN0YXRpYyBMR0ZYX1Nwcml0ZSAgY2FudmFzKCZ0ZnQpOyAgICAgICAgICAvLyDlhajnlavpnaLpm5nnt6nooZ0gMjQww5cxMzXDlzE2Yml0IOKJiCA2NEtCCgovLyAtLS0tLS0tLS0tIOiHquijvem7numZo+Wtl+Wei++8iHRvb2xzL2dlbl9mb250LnB5IOW+niBhcHAvIOeUqOWIsOeahOWtl+iHquWLleeUoueUn++8m+WPquWQq+eUqOWIsOeahOWtl++8jOe0hOaVuOWNgSBLQu+8iS0tLS0tLS0tLS0KI2luY2x1ZGUgImZvbnRfZGF0YS5oIgpzdGF0aWMgY29uc3QgQml0bWFwRm9udCogZm9udF9vZihpbnQgZikgeyByZXR1cm4gZiA9PSBGT05UX1MgPyAmRk9OVDEyIDogZiA9PSBGT05UX0wgPyAmRk9OVDI0IDogJkZPTlQxNjsgfQpzdGF0aWMgY29uc3QgR2x5cGgqIGZpbmRfZ2x5cGgoY29uc3QgQml0bWFwRm9udCogRiwgdWludDMyX3QgY3ApIHsKICBpbnQgbG8gPSAwLCBoaSA9IEYtPm4gLSAxOyAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAvLyBnbHlwaHMg5L6dIGNvZGVwb2ludCDmjpLluo/vvIzkuozliIbmkJzlsIsKICB3aGlsZSAobG8gPD0gaGkpIHsgaW50IG0gPSAobG8gKyBoaSkgLyAyOyBpZiAoRi0+Z2x5cGhzW21dLmNwID09IGNwKSByZXR1cm4gJkYtPmdseXBoc1ttXTsgaWYgKEYtPmdseXBoc1ttXS5jcCA8IGNwKSBsbyA9IG0gKyAxOyBlbHNlIGhpID0gbSAtIDE7IH0KICByZXR1cm4gY3AgPT0gJz8nID8gbnVsbHB0ciA6IGZpbmRfZ2x5cGgoRiwgJz8nKTsgICAgICAgICAgICAvLyDmspLmnInnmoTlrZfnlavmiJDllY/omZ8KfQpzdGF0aWMgdWludDMyX3QgdXRmOF9uZXh0KGNvbnN0IGNoYXIqKiBwKSB7CiAgY29uc3QgdWludDhfdCogcyA9IChjb25zdCB1aW50OF90KikqcDsgdWludDMyX3QgYyA9IHNbMF07IGludCBuID0gMDsKICBpZiAoYyA+PSAweEYwKSB7IGMgJj0gNzsgbiA9IDM7IH0gZWxzZSBpZiAoYyA+PSAweEUwKSB7IGMgJj0gMTU7IG4gPSAyOyB9IGVsc2UgaWYgKGMgPj0gMHhDMCkgeyBjICY9IDMxOyBuID0gMTsgfQogIGZvciAoaW50IGkgPSAxOyBpIDw9IG4gJiYgc1tpXTsgaSsrKSBjID0gKGMgPDwgNikgfCAoc1tpXSAmIDYzKTsKICAqcCArPSBuICsgMTsgcmV0dXJuIGM7Cn0Kc3RhdGljIGludCB0ZXh0X3dpZHRoKGNvbnN0IEJpdG1hcEZvbnQqIEYsIGNvbnN0IGNoYXIqIHMpIHsKICBpbnQgdyA9IDA7IHdoaWxlICgqcykgeyBjb25zdCBHbHlwaCogZyA9IGZpbmRfZ2x5cGgoRiwgdXRmOF9uZXh0KCZzKSk7IGlmIChnKSB3ICs9IGctPmFkdjsgfSByZXR1cm4gdzsKfQpzdGF0aWMgdm9pZCBkcmF3X2dseXBoKGNvbnN0IEJpdG1hcEZvbnQqIEYsIGNvbnN0IEdseXBoKiBnLCBpbnQgeCwgaW50IHksIHVpbnQxNl90IGMpIHsKICBpbnQgcm93Ynl0ZXMgPSAoZy0+dyArIDcpIC8gODsgY29uc3QgdWludDhfdCogYiA9IEYtPmJpdHMgKyBnLT5vZmY7CiAgZm9yIChpbnQgciA9IDA7IHIgPCBGLT5oZWlnaHQ7IHIrKywgYiArPSByb3dieXRlcykKICAgIGZvciAoaW50IHB4ID0gMDsgcHggPCBnLT53OyBweCsrKQogICAgICBpZiAoYltweCA+PiAzXSAmICgweDgwID4+IChweCAmIDcpKSkgY2FudmFzLmRyYXdQaXhlbCh4ICsgcHgsIHkgKyByLCBjKTsKfQoKdWludDMyX3QgaGFsX21pbGxpcygpIHsgcmV0dXJuIG1pbGxpcygpOyB9CnZvaWQgaGFsX2dmeF9iZWdpbl9mcmFtZSgpIHt9CnZvaWQgaGFsX2dmeF9lbmRfZnJhbWUoKSB7IGNhbnZhcy5wdXNoU3ByaXRlKDAsIDApOyB9CnZvaWQgaGFsX2dmeF9maWxsKHVpbnQxNl90IGMpIHsgY2FudmFzLmZpbGxTY3JlZW4oYyk7IH0Kdm9pZCBoYWxfZ2Z4X2ZpbGxfcmVjdChpbnQgeCwgaW50IHksIGludCB3LCBpbnQgaCwgdWludDE2X3QgYykgeyBjYW52YXMuZmlsbFJlY3QoeCwgeSwgdywgaCwgYyk7IH0Kdm9pZCBoYWxfZ2Z4X2RyYXdfcmVjdChpbnQgeCwgaW50IHksIGludCB3LCBpbnQgaCwgdWludDE2X3QgYykgeyBjYW52YXMuZHJhd1JlY3QoeCwgeSwgdywgaCwgYyk7IH0Kdm9pZCBoYWxfZ2Z4X3RleHQoaW50IHgsIGludCB5LCBjb25zdCBjaGFyKiBzLCBpbnQgZm9udCwgdWludDE2X3QgYywgaW50IGFsaWduKSB7CiAgY29uc3QgQml0bWFwRm9udCogRiA9IGZvbnRfb2YoZm9udCk7CiAgaW50IHcgPSB0ZXh0X3dpZHRoKEYsIHMpOwogIGlmIChhbGlnbiA9PSBBTF9DRU5URVIpIHggLT0gdyAvIDI7IGVsc2UgaWYgKGFsaWduID09IEFMX1JJR0hUKSB4IC09IHc7CiAgd2hpbGUgKCpzKSB7IGNvbnN0IEdseXBoKiBnID0gZmluZF9nbHlwaChGLCB1dGY4X25leHQoJnMpKTsgaWYgKCFnKSBjb250aW51ZTsgZHJhd19nbHlwaChGLCBnLCB4LCB5LCBjKTsgeCArPSBnLT5hZHY7IH0KfQp2b2lkIGhhbF9nZnhfYmFja2xpZ2h0KHVpbnQ4X3QgcGN0KSB7IHRmdC5zZXRCcmlnaHRuZXNzKHBjdCAqIDI1NSAvIDEwMCk7IH0KCi8vIC0tLS0tLS0tLS0g5oyJ6Y21IC0tLS0tLS0tLS0KYm9vbCBoYWxfYnV0dG9uX3ByZXNzZWQoaW50IGlkKSB7IHJldHVybiBkaWdpdGFsUmVhZChpZCA9PSBCVE5fTEVGVCA/IFBJTl9CVE5fTCA6IFBJTl9CVE5fUikgPT0gTE9XOyB9CgovLyAtLS0tLS0tLS0tIOWKoOmAn+W6puioiO+8iOiHquW3seiugOaaq+WtmOWZqO+8jOS4jemdoOWklumDqOWHveW8j+W6q++8iS0tLS0tLS0tLS0KLy8g6aCQ6KitIEFEWEwzNDXvvJvnt6jora/mmYLliqAgLURBQ0NFTF9NUFU2MDUw77yIbWFrZSBidWlsZC1tcHXvvInlsLHmlLnoroAgTVBVNjA1MO+8jOaOpee3muWujOWFqOebuOWQjO+8iEkyQyAyMe+8jzIy77yJ44CCCiNpZmRlZiBBQ0NFTF9NUFU2MDUwCnN0YXRpYyBjb25zdCB1aW50OF90IE1QVV9BRERSID0gMHg2ODsgICAgICAgICAgICAgICAgICAgICAgIC8vIEFEMCDmjqXlnLDvvIjmiJbkuI3mjqXvvInvvJ0weDY477yb5o6l6auY77ydMHg2OQpzdGF0aWMgdm9pZCBtcHVfd3JpdGUodWludDhfdCByZWcsIHVpbnQ4X3QgdmFsKSB7IFdpcmUuYmVnaW5UcmFuc21pc3Npb24oTVBVX0FERFIpOyBXaXJlLndyaXRlKHJlZyk7IFdpcmUud3JpdGUodmFsKTsgV2lyZS5lbmRUcmFuc21pc3Npb24oKTsgfQpib29sIGhhbF9hY2NlbF9iZWdpbigpIHsKICBXaXJlLmJlZ2luKFBJTl9TREEsIFBJTl9TQ0wsIDQwMDAwMCk7CiAgV2lyZS5iZWdpblRyYW5zbWlzc2lvbihNUFVfQUREUik7IFdpcmUud3JpdGUoMHg3NSk7ICAgICAgIC8vIFdIT19BTV9JCiAgaWYgKFdpcmUuZW5kVHJhbnNtaXNzaW9uKGZhbHNlKSAhPSAwIHx8IFdpcmUucmVxdWVzdEZyb20oTVBVX0FERFIsICh1aW50OF90KTEpICE9IDEpIHJldHVybiBmYWxzZTsKICB1aW50OF90IGlkID0gV2lyZS5yZWFkKCk7CiAgaWYgKGlkICE9IDB4NjggJiYgaWQgIT0gMHg3MCAmJiBpZCAhPSAweDcxKSB7IGhhbF9sb2coIltNUFU2MDUwXSDoo53nva7ku6PnorzpjK/oqqQgMHglMDJYIiwgaWQpOyByZXR1cm4gZmFsc2U7IH0KICBtcHVfd3JpdGUoMHg2QiwgMHgwMCk7ICAgLy8gUFdSX01HTVRfMe+8muWWmumGkuOAgeWFp+mDqOaZguiEiAogIG1wdV93cml0ZSgweDFDLCAweDAwKTsgICAvLyBBQ0NFTF9DT05GSUfvvJrCsTJnIOKGkiAxNjM4NCBMU0IvZwogIG1wdV93cml0ZSgweDFBLCAweDAzKTsgICAvLyBDT05GSUfvvJrmlbjkvY3kvY7pgJrntIQgNDQgSHoKICByZXR1cm4gdHJ1ZTsKfQpib29sIGhhbF9hY2NlbF9yZWFkKGZsb2F0KiBheCwgZmxvYXQqIGF5LCBmbG9hdCogYXopIHsKICBXaXJlLmJlZ2luVHJhbnNtaXNzaW9uKE1QVV9BRERSKTsgV2lyZS53cml0ZSgweDNCKTsgICAgICAgLy8gQUNDRUxfWE9VVF9I77yM6auY5L2N5YWD57WE5Zyo5YmNCiAgaWYgKFdpcmUuZW5kVHJhbnNtaXNzaW9uKGZhbHNlKSAhPSAwIHx8IFdpcmUucmVxdWVzdEZyb20oTVBVX0FERFIsICh1aW50OF90KTYpICE9IDYpIHJldHVybiBmYWxzZTsKICBpbnQxNl90IHggPSBXaXJlLnJlYWQoKSA8PCA4LCB5LCB6OyB4IHw9IFdpcmUucmVhZCgpOyB5ID0gV2lyZS5yZWFkKCkgPDwgODsgeSB8PSBXaXJlLnJlYWQoKTsgeiA9IFdpcmUucmVhZCgpIDw8IDg7IHogfD0gV2lyZS5yZWFkKCk7CiAgKmF4ID0geCAvIDE2Mzg0LjBmOyAqYXkgPSB5IC8gMTYzODQuMGY7ICpheiA9IHogLyAxNjM4NC4wZjsKICByZXR1cm4gdHJ1ZTsKfQojZWxzZQpzdGF0aWMgdm9pZCBhZHhsX3dyaXRlKHVpbnQ4X3QgcmVnLCB1aW50OF90IHZhbCkgeyBXaXJlLmJlZ2luVHJhbnNtaXNzaW9uKEFEWExfQUREUik7IFdpcmUud3JpdGUocmVnKTsgV2lyZS53cml0ZSh2YWwpOyBXaXJlLmVuZFRyYW5zbWlzc2lvbigpOyB9CmJvb2wgaGFsX2FjY2VsX2JlZ2luKCkgewogIFdpcmUuYmVnaW4oUElOX1NEQSwgUElOX1NDTCwgNDAwMDAwKTsKICBXaXJlLmJlZ2luVHJhbnNtaXNzaW9uKEFEWExfQUREUik7IFdpcmUud3JpdGUoMHgwMCk7ICAgICAgICAgICAgICAgICAvLyBERVZJRAogIGlmIChXaXJlLmVuZFRyYW5zbWlzc2lvbihmYWxzZSkgIT0gMCB8fCBXaXJlLnJlcXVlc3RGcm9tKEFEWExfQUREUiwgKHVpbnQ4X3QpMSkgIT0gMSkgcmV0dXJuIGZhbHNlOwogIHVpbnQ4X3QgaWQgPSBXaXJlLnJlYWQoKTsKICBpZiAoaWQgIT0gMHhFNSkgeyBoYWxfbG9nKCJbQURYTDM0NV0g6KOd572u5Luj56K86Yyv6KqkIDB4JTAyWO+8iOaHieeCuiAweEU177yJIiwgaWQpOyByZXR1cm4gZmFsc2U7IH0KICBhZHhsX3dyaXRlKDB4MkMsIDB4MEEpOyAgIC8vIEJXX1JBVEXvvJoxMDAgSHoKICBhZHhsX3dyaXRlKDB4MzEsIDB4MDgpOyAgIC8vIERBVEFfRk9STUFU77ya5YWo6Kej5p6Q5bqm44CBwrEyZyDihpIgMy45IG1nL0xTQgogIGFkeGxfd3JpdGUoMHgyRCwgMHgwOCk7ICAgLy8gUE9XRVJfQ1RM77ya6YeP5ris5qih5byPCiAgcmV0dXJuIHRydWU7Cn0KYm9vbCBoYWxfYWNjZWxfcmVhZChmbG9hdCogYXgsIGZsb2F0KiBheSwgZmxvYXQqIGF6KSB7CiAgV2lyZS5iZWdpblRyYW5zbWlzc2lvbihBRFhMX0FERFIpOyBXaXJlLndyaXRlKDB4MzIpOwogIGlmIChXaXJlLmVuZFRyYW5zbWlzc2lvbihmYWxzZSkgIT0gMCB8fCBXaXJlLnJlcXVlc3RGcm9tKEFEWExfQUREUiwgKHVpbnQ4X3QpNikgIT0gNikgcmV0dXJuIGZhbHNlOwogIGludDE2X3QgeCA9IFdpcmUucmVhZCgpIHwgKFdpcmUucmVhZCgpIDw8IDgpLCB5ID0gV2lyZS5yZWFkKCkgfCAoV2lyZS5yZWFkKCkgPDwgOCksIHogPSBXaXJlLnJlYWQoKSB8IChXaXJlLnJlYWQoKSA8PCA4KTsKICAqYXggPSB4IC8gMjU2LjBmOyAqYXkgPSB5IC8gMjU2LjBmOyAqYXogPSB6IC8gMjU2LjBmOwogIHJldHVybiB0cnVlOwp9CiNlbmRpZgoKLy8gLS0tLS0tLS0tLSDonILps7TlmaggLS0tLS0tLS0tLQp2b2lkIGhhbF90b25lKHVpbnQxNl90IGh6LCB1aW50MTZfdCBtcykgeyB0b25lKFBJTl9CVVpaRVIsIGh6LCBtcyk7IH0Kdm9pZCBoYWxfdG9uZV9zdG9wKCkgeyBub1RvbmUoUElOX0JVWlpFUik7IH0KCi8vIC0tLS0tLS0tLS0g5YSy5a2YIC0tLS0tLS0tLS0Kc3RhdGljIFByZWZlcmVuY2VzIHByZWZzOwpib29sIGhhbF9rdl9nZXQoY29uc3QgY2hhcioga2V5LCB2b2lkKiBidWYsIHNpemVfdCBsZW4pIHsKICBpZiAoIXByZWZzLmlzS2V5KGtleSkpIHJldHVybiBmYWxzZTsKICBzaXplX3QgbiA9IHByZWZzLmdldEJ5dGVzTGVuZ3RoKGtleSk7IGlmIChuID09IDAgfHwgbiA+IGxlbikgcmV0dXJuIGZhbHNlOwogIHJldHVybiBwcmVmcy5nZXRCeXRlcyhrZXksIGJ1ZiwgbikgPT0gbjsKfQp2b2lkIGhhbF9rdl9zZXQoY29uc3QgY2hhcioga2V5LCBjb25zdCB2b2lkKiBidWYsIHNpemVfdCBsZW4pIHsgcHJlZnMucHV0Qnl0ZXMoa2V5LCBidWYsIGxlbik7IH0Kdm9pZCBoYWxfa3ZfcmVtb3ZlKGNvbnN0IGNoYXIqIGtleSkgeyBwcmVmcy5yZW1vdmUoa2V5KTsgfQoKLy8gLS0tLS0tLS0tLSDpm7vmsaAgLS0tLS0tLS0tLQovLyBULURpc3BsYXkg55qE5YiG5aOT6Zu76Lev55SxIEdQSU8xNO+8iEFEQ19FTu+8ieaOp+WItu+8muimgeWFiOaLiemrmO+8jEdQSU8zNCDoroDliLDnmoTmiY3mmK/pm7vmsaDpm7vlo5PvvIjlrpjmlrnohbPkvY3lnJbvvIkKc3RhdGljIGNvbnN0IGludCBQSU5fQURDX0VOID0gMTQ7CmZsb2F0IGhhbF9iYXR0ZXJ5X3ZvbHRzKCkgewogIGRpZ2l0YWxXcml0ZShQSU5fQURDX0VOLCBISUdIKTsgZGVsYXlNaWNyb3NlY29uZHMoMjAwKTsKICBmbG9hdCB2ID0gYW5hbG9nUmVhZE1pbGxpVm9sdHMoUElOX1ZCQVQpICogMi4wZiAvIDEwMDAuMGY7CiAgcmV0dXJuIHY7Cn0KCi8vIC0tLS0tLS0tLS0g57ay6LevICsgSFRUUCAtLS0tLS0tLS0tCnN0YXRpYyBXZWJTZXJ2ZXIgc2VydmVyKDgwKTsKc3RhdGljIFN0cmluZyBpcF9zdHIsIG1hY19zdHI7CnN0YXRpYyBib29sIHN0YV9vayA9IGZhbHNlOwoKc3RhdGljIFN0cmluZyByZWJ1aWxkX2JvZHkoKSB7ICAgICAgICAvLyBXZWJTZXJ2ZXIg5bey5oqK6KGo5Zau5ouG5oiQIGFyZ3PvvIzmi7zlm54gaz12Jms9diDntaYgYXBwIOino+aekAogIFN0cmluZyBiOwogIGZvciAoaW50IGkgPSAwOyBpIDwgc2VydmVyLmFyZ3MoKTsgaSsrKSB7CiAgICBpZiAoc2VydmVyLmFyZ05hbWUoaSkgPT0gInBsYWluIikgY29udGludWU7CiAgICBpZiAoYi5sZW5ndGgoKSkgYiArPSAnJic7CiAgICBiICs9IHNlcnZlci5hcmdOYW1lKGkpOyBiICs9ICc9JzsKICAgIFN0cmluZyB2ID0gc2VydmVyLmFyZyhpKTsKICAgIGZvciAoc2l6ZV90IGogPSAwOyBqIDwgdi5sZW5ndGgoKTsgaisrKSB7ICAgICAvLyDlj6rovYkgJiA9ICUgKyDlm5vlgIvlrZflhYPvvIzlhbbppJjljp/mqKPvvIhhcHAg5pyD6KejICVYWO+8iQogICAgICBjaGFyIGMgPSB2W2pdOwogICAgICBpZiAoYyA9PSAnJicgfHwgYyA9PSAnPScgfHwgYyA9PSAnJScgfHwgYyA9PSAnKycpIHsgY2hhciBoWzRdOyBzbnByaW50ZihoLCA0LCAiJSUlMDJYIiwgKHVpbnQ4X3QpYyk7IGIgKz0gaDsgfSBlbHNlIGIgKz0gYzsKICAgIH0KICB9CiAgaWYgKCFiLmxlbmd0aCgpICYmIHNlcnZlci5oYXNBcmcoInBsYWluIikpIGIgPSBzZXJ2ZXIuYXJnKCJwbGFpbiIpOwogIHJldHVybiBiOwp9CnN0YXRpYyB2b2lkIG9uX3JlcXVlc3QoKSB7CiAgaWYgKCFzZXJ2ZXIuYXV0aGVudGljYXRlKCJhZG1pbiIsIGFwcF93ZWJfcGFzc3dvcmQoKSkpIHJldHVybiBzZXJ2ZXIucmVxdWVzdEF1dGhlbnRpY2F0aW9uKEJBU0lDX0FVVEgsICLoqIjmraXlmagiKTsKICBTdHJpbmcgYm9keSA9IHJlYnVpbGRfYm9keSgpOyBTdHJpbmcgdXJpID0gc2VydmVyLnVyaSgpOwogIEh0dHBSZXEgcmVxID0geyBzZXJ2ZXIubWV0aG9kKCkgPT0gSFRUUF9QT1NUID8gIlBPU1QiIDogIkdFVCIsIHVyaS5jX3N0cigpLCBib2R5LmNfc3RyKCksIHRydWUgfTsKICBIdHRwUmVzcCByID0gYXBwX2h0dHAocmVxKTsKICBzZXJ2ZXIuc2VuZEhlYWRlcigiQ2FjaGUtQ29udHJvbCIsICJuby1zdG9yZSIpOwogIHNlcnZlci5zZW5kX1Aoci5jb2RlLCByLnR5cGUsIHIuYm9keSwgci5sZW4pOwp9CnZvaWQgaGFsX25ldF9iZWdpbihjb25zdCBjaGFyKiBhcF9zc2lkLCBjb25zdCBjaGFyKiBhcF9wYXNzLCBjb25zdCBjaGFyKiBzdGFfc3NpZCwgY29uc3QgY2hhciogc3RhX3Bhc3MpIHsKICBXaUZpLnBlcnNpc3RlbnQoZmFsc2UpOwogIFdpRmkubW9kZShXSUZJX0FQX1NUQSk7CiAgV2lGaS5zb2Z0QVAoYXBfc3NpZCwgYXBfcGFzcywgMSwgMCwgNCk7CiAgaWYgKHN0YV9zc2lkICYmICpzdGFfc3NpZCkgewogICAgaGFsX2xvZygiW+e2sui3r10g6YCj57ea5YiwICVzIOKApiIsIHN0YV9zc2lkKTsKICAgIFdpRmkuYmVnaW4oc3RhX3NzaWQsIHN0YV9wYXNzKTsKICAgIGZvciAoaW50IGkgPSAwOyBpIDwgNDAgJiYgV2lGaS5zdGF0dXMoKSAhPSBXTF9DT05ORUNURUQ7IGkrKykgZGVsYXkoMjAwKTsKICAgIHN0YV9vayA9IFdpRmkuc3RhdHVzKCkgPT0gV0xfQ09OTkVDVEVEOwogICAgaWYgKCFzdGFfb2spIGhhbF9sb2coIlvntrLot69dIOmAo+S4jeS4iuWutueUqOe2sui3r++8jOaUueeUqOeGsem7niIpOwogIH0KICBpcF9zdHIgPSAoc3RhX29rID8gV2lGaS5sb2NhbElQKCkgOiBXaUZpLnNvZnRBUElQKCkpLnRvU3RyaW5nKCk7CiAgbWFjX3N0ciA9IFdpRmkubWFjQWRkcmVzcygpOwogIHNlcnZlci5vbk5vdEZvdW5kKG9uX3JlcXVlc3QpOwogIHNlcnZlci5iZWdpbigpOwogIGhhbF9sb2coIlvntrLpoIFdIOS8uuacjeWZqOWVn+WLleaWvCBwb3J0IDgwIik7Cn0KY29uc3QgY2hhciogaGFsX25ldF9pcCgpIHsgcmV0dXJuIGlwX3N0ci5jX3N0cigpOyB9CmJvb2wgaGFsX25ldF9zdGFfY29ubmVjdGVkKCkgeyByZXR1cm4gc3RhX29rOyB9CmNvbnN0IGNoYXIqIGhhbF9uZXRfbWFjKCkgeyByZXR1cm4gbWFjX3N0ci5jX3N0cigpOyB9CnZvaWQgaGFsX2VzcDMyX3BvbGwoKSB7IHNlcnZlci5oYW5kbGVDbGllbnQoKTsgfQoKLy8gLS0tLS0tLS0tLSDml6XoqowgLS0tLS0tLS0tLQp2b2lkIGhhbF9sb2coY29uc3QgY2hhciogZm10LCAuLi4pIHsKICBjaGFyIGJ1ZlsyNTZdOyB2YV9saXN0IGFwOyB2YV9zdGFydChhcCwgZm10KTsgdnNucHJpbnRmKGJ1Ziwgc2l6ZW9mIGJ1ZiwgZm10LCBhcCk7IHZhX2VuZChhcCk7CiAgU2VyaWFsLnByaW50bG4oYnVmKTsKfQoKLy8gLS0tLS0tLS0tLSDplovmqZ/liJ3lp4vljJbvvIjlnKggYXBwX3NldHVwIOS5i+WJje+8iS0tLS0tLS0tLS0KLy8gQXJkdWlubyDnmoQgaW5pdFZhcmlhbnQg5byx56ym6Jmf5pyD5ZyoIHNldHVwKCkg5LmL5YmN6KKr5ZG85Y+r77yM55So5a6D5oqK5ZGo6YKK5rqW5YKZ5aW944CCCnZvaWQgaW5pdFZhcmlhbnQoKSB7CiAgU2VyaWFsLmJlZ2luKDExNTIwMCk7IGRlbGF5KDEwMCk7CiAgcGluTW9kZShQSU5fQlROX0wsIElOUFVUX1BVTExVUCk7IHBpbk1vZGUoUElOX0JUTl9SLCBJTlBVVCk7CiAgcGluTW9kZShQSU5fQlVaWkVSLCBPVVRQVVQpOyBkaWdpdGFsV3JpdGUoUElOX0JVWlpFUiwgTE9XKTsKICBwaW5Nb2RlKFBJTl9BRENfRU4sIE9VVFBVVCk7IGRpZ2l0YWxXcml0ZShQSU5fQURDX0VOLCBISUdIKTsKICBhbmFsb2dSZWFkUmVzb2x1dGlvbigxMik7CiAgcHJlZnMuYmVnaW4oInBlZG9sYWIiLCBmYWxzZSk7CiAgdGZ0LmluaXQoKTsgdGZ0LnNldFJvdGF0aW9uKDEpOyB0ZnQuc2V0QnJpZ2h0bmVzcygwKTsKICBjYW52YXMuc2V0Q29sb3JEZXB0aCgxNik7IGNhbnZhcy5jcmVhdGVTcHJpdGUoU0NSRUVOX1csIFNDUkVFTl9IKTsKfQo=">下載</a>　<span class="n">220 行</span></summary><pre>// HAL 的 ESP32 實作：LILYGO T-Display + ADXL345 + 蜂鳴器。
+// Arduino ESP32 core 3.3.x、LovyanGFX 1.2.x。
+#include &lt;Arduino.h&gt;
+#include &lt;Wire.h&gt;
+#include &lt;Preferences.h&gt;
+#include &lt;WiFi.h&gt;
+#include &lt;WebServer.h&gt;
+#define LGFX_USE_V1
+#include &lt;LovyanGFX.hpp&gt;
+#include &quot;src/hal/hal.h&quot;
+#include &quot;src/app/app.h&quot;
+
+void hal_esp32_poll();   // 由 .ino 每圈呼叫（處理 HTTP）
+
+// ---------- 腳位 ----------
+static const int PIN_BTN_L = 0, PIN_BTN_R = 35, PIN_BUZZER = 25, PIN_VBAT = 34;
+static const int PIN_SDA = 21, PIN_SCL = 22;
+static const int PIN_TFT_SCLK = 18, PIN_TFT_MOSI = 19, PIN_TFT_CS = 5, PIN_TFT_DC = 16, PIN_TFT_RST = 23, PIN_TFT_BL = 4;
+static const uint8_t ADXL_ADDR = 0x53;
+
+// ---------- 螢幕 ----------
+class LGFX_TDisplay : public lgfx::LGFX_Device {
+  lgfx::Panel_ST7789 panel_; lgfx::Bus_SPI bus_; lgfx::Light_PWM light_;
+public:
+  LGFX_TDisplay() {
+    { auto c = bus_.config();
+      c.spi_host = VSPI_HOST; c.spi_mode = 0; c.freq_write = 40000000; c.freq_read = 16000000;
+      c.spi_3wire = true; c.use_lock = true; c.dma_channel = SPI_DMA_CH_AUTO;
+      c.pin_sclk = PIN_TFT_SCLK; c.pin_mosi = PIN_TFT_MOSI; c.pin_miso = -1; c.pin_dc = PIN_TFT_DC;
+      bus_.config(c); panel_.setBus(&amp;bus_); }
+    { auto c = panel_.config();
+      c.pin_cs = PIN_TFT_CS; c.pin_rst = PIN_TFT_RST; c.pin_busy = -1;
+      c.panel_width = 135; c.panel_height = 240; c.offset_x = 52; c.offset_y = 40;
+      c.offset_rotation = 0; c.readable = false; c.invert = true; c.rgb_order = false; c.dlen_16bit = false; c.bus_shared = false;
+      panel_.config(c); }
+    { auto c = light_.config(); c.pin_bl = PIN_TFT_BL; c.invert = false; c.freq = 44100; c.pwm_channel = 7;
+      light_.config(c); panel_.setLight(&amp;light_); }
+    setPanel(&amp;panel_);
+  }
+};
+static LGFX_TDisplay tft;
+static LGFX_Sprite  canvas(&amp;tft);          // 全畫面雙緩衝 240×135×16bit ≈ 64KB
+
+// ---------- 自製點陣字型（tools/gen_font.py 從 app/ 用到的字自動產生；只含用到的字，約數十 KB）----------
+#include &quot;font_data.h&quot;
+static const BitmapFont* font_of(int f) { return f == FONT_S ? &amp;FONT12 : f == FONT_L ? &amp;FONT24 : &amp;FONT16; }
+static const Glyph* find_glyph(const BitmapFont* F, uint32_t cp) {
+  int lo = 0, hi = F-&gt;n - 1;                                  // glyphs 依 codepoint 排序，二分搜尋
+  while (lo &lt;= hi) { int m = (lo + hi) / 2; if (F-&gt;glyphs[m].cp == cp) return &amp;F-&gt;glyphs[m]; if (F-&gt;glyphs[m].cp &lt; cp) lo = m + 1; else hi = m - 1; }
+  return cp == &#x27;?&#x27; ? nullptr : find_glyph(F, &#x27;?&#x27;);            // 沒有的字畫成問號
+}
+static uint32_t utf8_next(const char** p) {
+  const uint8_t* s = (const uint8_t*)*p; uint32_t c = s[0]; int n = 0;
+  if (c &gt;= 0xF0) { c &amp;= 7; n = 3; } else if (c &gt;= 0xE0) { c &amp;= 15; n = 2; } else if (c &gt;= 0xC0) { c &amp;= 31; n = 1; }
+  for (int i = 1; i &lt;= n &amp;&amp; s[i]; i++) c = (c &lt;&lt; 6) | (s[i] &amp; 63);
+  *p += n + 1; return c;
+}
+static int text_width(const BitmapFont* F, const char* s) {
+  int w = 0; while (*s) { const Glyph* g = find_glyph(F, utf8_next(&amp;s)); if (g) w += g-&gt;adv; } return w;
+}
+static void draw_glyph(const BitmapFont* F, const Glyph* g, int x, int y, uint16_t c) {
+  int rowbytes = (g-&gt;w + 7) / 8; const uint8_t* b = F-&gt;bits + g-&gt;off;
+  for (int r = 0; r &lt; F-&gt;height; r++, b += rowbytes)
+    for (int px = 0; px &lt; g-&gt;w; px++)
+      if (b[px &gt;&gt; 3] &amp; (0x80 &gt;&gt; (px &amp; 7))) canvas.drawPixel(x + px, y + r, c);
+}
+
+uint32_t hal_millis() { return millis(); }
+void hal_gfx_begin_frame() {}
+void hal_gfx_end_frame() { canvas.pushSprite(0, 0); }
+void hal_gfx_fill(uint16_t c) { canvas.fillScreen(c); }
+void hal_gfx_fill_rect(int x, int y, int w, int h, uint16_t c) { canvas.fillRect(x, y, w, h, c); }
+void hal_gfx_draw_rect(int x, int y, int w, int h, uint16_t c) { canvas.drawRect(x, y, w, h, c); }
+void hal_gfx_text(int x, int y, const char* s, int font, uint16_t c, int align) {
+  const BitmapFont* F = font_of(font);
+  int w = text_width(F, s);
+  if (align == AL_CENTER) x -= w / 2; else if (align == AL_RIGHT) x -= w;
+  while (*s) { const Glyph* g = find_glyph(F, utf8_next(&amp;s)); if (!g) continue; draw_glyph(F, g, x, y, c); x += g-&gt;adv; }
+}
+void hal_gfx_backlight(uint8_t pct) { tft.setBrightness(pct * 255 / 100); }
+
+// ---------- 按鍵 ----------
+bool hal_button_pressed(int id) { return digitalRead(id == BTN_LEFT ? PIN_BTN_L : PIN_BTN_R) == LOW; }
+
+// ---------- 加速度計（自己讀暫存器，不靠外部函式庫）----------
+// 預設 ADXL345；編譯時加 -DACCEL_MPU6050（make build-mpu）就改讀 MPU6050，接線完全相同（I2C 21／22）。
+#ifdef ACCEL_MPU6050
+static const uint8_t MPU_ADDR = 0x68;                       // AD0 接地（或不接）＝0x68；接高＝0x69
+static void mpu_write(uint8_t reg, uint8_t val) { Wire.beginTransmission(MPU_ADDR); Wire.write(reg); Wire.write(val); Wire.endTransmission(); }
+bool hal_accel_begin() {
+  Wire.begin(PIN_SDA, PIN_SCL, 400000);
+  Wire.beginTransmission(MPU_ADDR); Wire.write(0x75);       // WHO_AM_I
+  if (Wire.endTransmission(false) != 0 || Wire.requestFrom(MPU_ADDR, (uint8_t)1) != 1) return false;
+  uint8_t id = Wire.read();
+  if (id != 0x68 &amp;&amp; id != 0x70 &amp;&amp; id != 0x71) { hal_log(&quot;[MPU6050] 裝置代碼錯誤 0x%02X&quot;, id); return false; }
+  mpu_write(0x6B, 0x00);   // PWR_MGMT_1：喚醒、內部時脈
+  mpu_write(0x1C, 0x00);   // ACCEL_CONFIG：±2g → 16384 LSB/g
+  mpu_write(0x1A, 0x03);   // CONFIG：數位低通約 44 Hz
+  return true;
+}
+bool hal_accel_read(float* ax, float* ay, float* az) {
+  Wire.beginTransmission(MPU_ADDR); Wire.write(0x3B);       // ACCEL_XOUT_H，高位元組在前
+  if (Wire.endTransmission(false) != 0 || Wire.requestFrom(MPU_ADDR, (uint8_t)6) != 6) return false;
+  int16_t x = Wire.read() &lt;&lt; 8, y, z; x |= Wire.read(); y = Wire.read() &lt;&lt; 8; y |= Wire.read(); z = Wire.read() &lt;&lt; 8; z |= Wire.read();
+  *ax = x / 16384.0f; *ay = y / 16384.0f; *az = z / 16384.0f;
+  return true;
+}
+#else
+static void adxl_write(uint8_t reg, uint8_t val) { Wire.beginTransmission(ADXL_ADDR); Wire.write(reg); Wire.write(val); Wire.endTransmission(); }
+bool hal_accel_begin() {
+  Wire.begin(PIN_SDA, PIN_SCL, 400000);
+  Wire.beginTransmission(ADXL_ADDR); Wire.write(0x00);                 // DEVID
+  if (Wire.endTransmission(false) != 0 || Wire.requestFrom(ADXL_ADDR, (uint8_t)1) != 1) return false;
+  uint8_t id = Wire.read();
+  if (id != 0xE5) { hal_log(&quot;[ADXL345] 裝置代碼錯誤 0x%02X（應為 0xE5）&quot;, id); return false; }
+  adxl_write(0x2C, 0x0A);   // BW_RATE：100 Hz
+  adxl_write(0x31, 0x08);   // DATA_FORMAT：全解析度、±2g → 3.9 mg/LSB
+  adxl_write(0x2D, 0x08);   // POWER_CTL：量測模式
+  return true;
+}
+bool hal_accel_read(float* ax, float* ay, float* az) {
+  Wire.beginTransmission(ADXL_ADDR); Wire.write(0x32);
+  if (Wire.endTransmission(false) != 0 || Wire.requestFrom(ADXL_ADDR, (uint8_t)6) != 6) return false;
+  int16_t x = Wire.read() | (Wire.read() &lt;&lt; 8), y = Wire.read() | (Wire.read() &lt;&lt; 8), z = Wire.read() | (Wire.read() &lt;&lt; 8);
+  *ax = x / 256.0f; *ay = y / 256.0f; *az = z / 256.0f;
+  return true;
+}
+#endif
+
+// ---------- 蜂鳴器 ----------
+void hal_tone(uint16_t hz, uint16_t ms) { tone(PIN_BUZZER, hz, ms); }
+void hal_tone_stop() { noTone(PIN_BUZZER); }
+
+// ---------- 儲存 ----------
+static Preferences prefs;
+bool hal_kv_get(const char* key, void* buf, size_t len) {
+  if (!prefs.isKey(key)) return false;
+  size_t n = prefs.getBytesLength(key); if (n == 0 || n &gt; len) return false;
+  return prefs.getBytes(key, buf, n) == n;
+}
+void hal_kv_set(const char* key, const void* buf, size_t len) { prefs.putBytes(key, buf, len); }
+void hal_kv_remove(const char* key) { prefs.remove(key); }
+
+// ---------- 電池 ----------
+// T-Display 的分壓電路由 GPIO14（ADC_EN）控制：要先拉高，GPIO34 讀到的才是電池電壓（官方腳位圖）
+static const int PIN_ADC_EN = 14;
+float hal_battery_volts() {
+  digitalWrite(PIN_ADC_EN, HIGH); delayMicroseconds(200);
+  float v = analogReadMilliVolts(PIN_VBAT) * 2.0f / 1000.0f;
+  return v;
+}
+
+// ---------- 網路 + HTTP ----------
+static WebServer server(80);
+static String ip_str, mac_str;
+static bool sta_ok = false;
+
+static String rebuild_body() {        // WebServer 已把表單拆成 args，拼回 k=v&amp;k=v 給 app 解析
+  String b;
+  for (int i = 0; i &lt; server.args(); i++) {
+    if (server.argName(i) == &quot;plain&quot;) continue;
+    if (b.length()) b += &#x27;&amp;&#x27;;
+    b += server.argName(i); b += &#x27;=&#x27;;
+    String v = server.arg(i);
+    for (size_t j = 0; j &lt; v.length(); j++) {     // 只轉 &amp; = % + 四個字元，其餘原樣（app 會解 %XX）
+      char c = v[j];
+      if (c == &#x27;&amp;&#x27; || c == &#x27;=&#x27; || c == &#x27;%&#x27; || c == &#x27;+&#x27;) { char h[4]; snprintf(h, 4, &quot;%%%02X&quot;, (uint8_t)c); b += h; } else b += c;
+    }
+  }
+  if (!b.length() &amp;&amp; server.hasArg(&quot;plain&quot;)) b = server.arg(&quot;plain&quot;);
+  return b;
+}
+static void on_request() {
+  if (!server.authenticate(&quot;admin&quot;, app_web_password())) return server.requestAuthentication(BASIC_AUTH, &quot;計步器&quot;);
+  String body = rebuild_body(); String uri = server.uri();
+  HttpReq req = { server.method() == HTTP_POST ? &quot;POST&quot; : &quot;GET&quot;, uri.c_str(), body.c_str(), true };
+  HttpResp r = app_http(req);
+  server.sendHeader(&quot;Cache-Control&quot;, &quot;no-store&quot;);
+  server.send_P(r.code, r.type, r.body, r.len);
+}
+void hal_net_begin(const char* ap_ssid, const char* ap_pass, const char* sta_ssid, const char* sta_pass) {
+  WiFi.persistent(false);
+  WiFi.mode(WIFI_AP_STA);
+  WiFi.softAP(ap_ssid, ap_pass, 1, 0, 4);
+  if (sta_ssid &amp;&amp; *sta_ssid) {
+    hal_log(&quot;[網路] 連線到 %s …&quot;, sta_ssid);
+    WiFi.begin(sta_ssid, sta_pass);
+    for (int i = 0; i &lt; 40 &amp;&amp; WiFi.status() != WL_CONNECTED; i++) delay(200);
+    sta_ok = WiFi.status() == WL_CONNECTED;
+    if (!sta_ok) hal_log(&quot;[網路] 連不上家用網路，改用熱點&quot;);
+  }
+  ip_str = (sta_ok ? WiFi.localIP() : WiFi.softAPIP()).toString();
+  mac_str = WiFi.macAddress();
+  server.onNotFound(on_request);
+  server.begin();
+  hal_log(&quot;[網頁] 伺服器啟動於 port 80&quot;);
+}
+const char* hal_net_ip() { return ip_str.c_str(); }
+bool hal_net_sta_connected() { return sta_ok; }
+const char* hal_net_mac() { return mac_str.c_str(); }
+void hal_esp32_poll() { server.handleClient(); }
+
+// ---------- 日誌 ----------
+void hal_log(const char* fmt, ...) {
+  char buf[256]; va_list ap; va_start(ap, fmt); vsnprintf(buf, sizeof buf, fmt, ap); va_end(ap);
+  Serial.println(buf);
+}
+
+// ---------- 開機初始化（在 app_setup 之前）----------
+// Arduino 的 initVariant 弱符號會在 setup() 之前被呼叫，用它把周邊準備好。
+void initVariant() {
+  Serial.begin(115200); delay(100);
+  pinMode(PIN_BTN_L, INPUT_PULLUP); pinMode(PIN_BTN_R, INPUT);
+  pinMode(PIN_BUZZER, OUTPUT); digitalWrite(PIN_BUZZER, LOW);
+  pinMode(PIN_ADC_EN, OUTPUT); digitalWrite(PIN_ADC_EN, HIGH);
+  analogReadResolution(12);
+  prefs.begin(&quot;pedolab&quot;, false);
+  tft.init(); tft.setRotation(1); tft.setBrightness(0);
+  canvas.setColorDepth(16); canvas.createSprite(SCREEN_W, SCREEN_H);
+}
+</pre></details></section><section id="cartridges"><h2>G　遊戲卡帶架構：擲筊、骰子、量角器（已內建在主韌體）</h2>
+<div class="meta"><span class="tag">入門～挑戰</span><span class="ok">✓ 主韌體內建；模擬器驗收 5 項通過（啟動卡帶、甩出筊、背景計步不中斷、骰子點數）</span></div>
+<p>主選單多一項「遊戲」，底下每個小遊戲是一個 Cartridge（名稱、提示、begin／update／draw）；計步在背景照常跑。已做三個卡帶：擲筊（甩一下→聖／笑／陰筊，各有旋律）、骰子（1～3 顆）、量角器（傾斜角、可歸零）。要加新卡帶只要繼承 Cartridge、在 CARTRIDGES 陣列加一筆——不碰硬體，模擬器就能驗。後面的賽博寵物、擦身而過、傾斜迷宮都可以照這個殼做。</p>
+<h3>步驟</h3><ol><li>開模擬器：同按長按回選單 → 選「遊戲」→ 同按進入 → 選擲筊 → 按「搖晃一下」。</li><li>照 <code>games.cpp</code> 的 Dice 類別寫一個新卡帶（例如猜拳、碼表），加進 CARTRIDGES。</li><li><code>make sim-build</code> 驗過再 <code>make build</code>／<code>make flash</code>。</li><li>進階：寵物卡帶讀 <code>c.steps</code> 當餵食；ESP-NOW「擦身而過」要在 hal.h 加廣播／接收介面，且與 Wi-Fi 同頻道。</li></ol>
+<h3>程式</h3><details><summary><code>firmware/app/games.h</code>　<a download="games.h" href="data:text/plain;charset=utf-8;base64,Ly8g44CM5Y2h5bi244CN5p625qeL77ya5q+P5YCL5bCP6YGK5oiy5piv5LiA5YCLIENhcnRyaWRnZe+8jOaOm+WcqOS4u+mBuOWWruOAjOmBiuaIsuOAjeW6leS4i++8m+ioiOatpeeFp+W4uOWcqOiDjOaZr+i3keOAggovLyDmlrDlop7ljaHluLbvvJrnubzmib8gQ2FydHJpZGdl44CB5ZyoIGdhbWVzLmNwcCDnmoQgQ0FSVFJJREdFUyDpmaPliJfliqDkuIDnrYbjgILkuI3norDnoazpq5TvvIzlj6rnlKggaGFsLmgg55qE55Wr5ZyW5Ye95byP44CCCiNwcmFnbWEgb25jZQojaW5jbHVkZSA8c3RkaW50Lmg+CiNpbmNsdWRlICJidXR0b25zLmgiCiNpbmNsdWRlICJidXp6ZXIuaCIKCnN0cnVjdCBHYW1lQ3R4IHsKICB1aW50MzJfdCBub3c7ICAgICAgICAgICAgLy8g5q+r56eSCiAgZmxvYXQgICAgYXgsIGF5LCBhejsgICAgIC8vIGcKICBmbG9hdCAgICBtYWc7ICAgICAgICAgICAgLy8gfGF8CiAgZmxvYXQgICAgcGl0Y2gsIHJvbGw7ICAgIC8vIOW6pu+8iOW3suW5s+a7ke+8iQogIEJ0bkV2ZW50IGV2OyAgICAgICAgICAgICAvLyDpgJnkuIDlnIjnmoTmjInpjbXkuovku7bvvIhFVl9CT1RIXyog55Sx5qGG5p626JmV55CG77yM5Y2h5bi25Y+q5pyD5pS25Yiw5bem77yP5Y+z77yJCiAgdWludDMyX3Qgc3RlcHM7ICAgICAgICAgIC8vIOS7iuaXpeatpeaVuO+8iOe1puatpeaVuOaPm+izh+a6kOeahOeOqeazle+8iQp9OwoKY2xhc3MgQ2FydHJpZGdlIHsKcHVibGljOgogIHZpcnR1YWwgfkNhcnRyaWRnZSgpIHt9CiAgdmlydHVhbCBjb25zdCBjaGFyKiBuYW1lKCkgY29uc3QgPSAwOyAgICAgICAgLy8g6YG45Zau5ZCN56ixCiAgdmlydHVhbCBjb25zdCBjaGFyKiBoaW50KCkgY29uc3QgPSAwOyAgICAgICAgLy8g5bqV6YOo5pON5L2c5o+Q56S6CiAgdmlydHVhbCB2b2lkIGJlZ2luKHVpbnQzMl90IG5vdykgPSAwOwogIHZpcnR1YWwgdm9pZCB1cGRhdGUoY29uc3QgR2FtZUN0eCYgYykgPSAwOyAgIC8vIOavj+WciO+8iOe0hCA1MCBIeu+8iQogIHZpcnR1YWwgdm9pZCBkcmF3KCkgPSAwOyAgICAgICAgICAgICAgICAgICAgIC8vIOeVq+mdouS4u+mrlO+8iOaomemhjOWIl+iIh+W6leWIl+eUseahhuaetueVq++8jOWPr+eVq+WNgCB5IDIy772eMTE477yJCiAgdmlydHVhbCBjb25zdCBjaGFyKiBzdGF0dXMoKSBjb25zdCB7IHJldHVybiAiIjsgfSAgIC8vIOe1piAvYXBpL3N0YXR1cyDnmoQgZ2FtZV9zdGF0ZQogIC8vIOWNoeW4tuimgemfv+mItOaZguioreWumumAmeWFqeWAi++8jOahhuaetuacg+WPlui1sAogIGNvbnN0IE5vdGUqIG1lbG9keSA9IG51bGxwdHI7IHVpbnQ4X3QgbWVsb2R5X24gPSAwOwp9OwoKQ2FydHJpZGdlKiBjb25zdCogY2FydHJpZGdlcyhpbnQqIG4pOwo=">下載</a>　<span class="n">30 行</span></summary><pre>// 「卡帶」架構：每個小遊戲是一個 Cartridge，掛在主選單「遊戲」底下；計步照常在背景跑。
+// 新增卡帶：繼承 Cartridge、在 games.cpp 的 CARTRIDGES 陣列加一筆。不碰硬體，只用 hal.h 的畫圖函式。
+#pragma once
+#include &lt;stdint.h&gt;
+#include &quot;buttons.h&quot;
+#include &quot;buzzer.h&quot;
+
+struct GameCtx {
+  uint32_t now;            // 毫秒
+  float    ax, ay, az;     // g
+  float    mag;            // |a|
+  float    pitch, roll;    // 度（已平滑）
+  BtnEvent ev;             // 這一圈的按鍵事件（EV_BOTH_* 由框架處理，卡帶只會收到左／右）
+  uint32_t steps;          // 今日步數（給步數換資源的玩法）
+};
+
+class Cartridge {
+public:
+  virtual ~Cartridge() {}
+  virtual const char* name() const = 0;        // 選單名稱
+  virtual const char* hint() const = 0;        // 底部操作提示
+  virtual void begin(uint32_t now) = 0;
+  virtual void update(const GameCtx&amp; c) = 0;   // 每圈（約 50 Hz）
+  virtual void draw() = 0;                     // 畫面主體（標題列與底列由框架畫，可畫區 y 22～118）
+  virtual const char* status() const { return &quot;&quot;; }   // 給 /api/status 的 game_state
+  // 卡帶要響鈴時設定這兩個，框架會取走
+  const Note* melody = nullptr; uint8_t melody_n = 0;
+};
+
+Cartridge* const* cartridges(int* n);
+</pre></details><details><summary><code>firmware/app/games.cpp</code>　<a download="games.cpp" href="data:text/plain;charset=utf-8;base64,I2luY2x1ZGUgImdhbWVzLmgiCiNpbmNsdWRlICIuLi9oYWwvaGFsLmgiCiNpbmNsdWRlIDxzdGRpby5oPgojaW5jbHVkZSA8bWF0aC5oPgoKLy8gLS0tLS0tLS0tLSDlhbHnlKggLS0tLS0tLS0tLQpzdGF0aWMgdWludDMyX3Qgcm5nX3N0YXRlID0gMHgyNTQ1RjQ5MXU7CnN0YXRpYyB2b2lkIHJuZ19taXgodWludDMyX3QgdikgeyBybmdfc3RhdGUgXj0gdjsgcm5nX3N0YXRlIF49IHJuZ19zdGF0ZSA8PCAxMzsgcm5nX3N0YXRlIF49IHJuZ19zdGF0ZSA+PiAxNzsgcm5nX3N0YXRlIF49IHJuZ19zdGF0ZSA8PCA1OyB9CnN0YXRpYyB1aW50MzJfdCBybmcoKSB7IHJuZ19taXgoMHg5RTM3NzlCOXUpOyByZXR1cm4gcm5nX3N0YXRlOyB9CgovLyDnlKnli5XlgbXmuKzvvJp8YXwg5YGP6ZuiIDEgZyDotoXpgY7ploDmqrvnrpfjgIznlKnli5XkuK3jgI3vvIznlKnlrozpnZzmraLkuIDmrrXmmYLplpPmiY3lh7rntZDmnpzvvIjpgb/lhY3pgKPnuozlh7rlpb3lub7mrKHvvIkKY2xhc3MgU2hha2VEZXRlY3RvciB7CnB1YmxpYzoKICAvLyDlm57lgrMgdHJ1ZSDooajnpLrjgIzliZvliZvnlKnlrozjgIHlj6/ku6Xlh7rntZDmnpzjgI0KICBib29sIGZlZWQoZmxvYXQgbWFnLCB1aW50MzJfdCBub3cpIHsKICAgIHJuZ19taXgoKHVpbnQzMl90KShtYWcgKiAxMDAwMDApIF4gbm93KTsgICAgICAgICAgICAgICAgICAgICAvLyDnlKjnnJ/lr6bpm5zoqIrmlKrkuoLkuoLmlbgKICAgIGJvb2wgc3Ryb25nID0gZmFic2YobWFnIC0gMS4wZikgPiAwLjZmOwogICAgaWYgKHN0cm9uZykgeyBzaGFraW5nXyA9IHRydWU7IGxhc3Rfc3Ryb25nXyA9IG5vdzsgcGVha18gPSBmbWF4ZihwZWFrXywgZmFic2YobWFnIC0gMS4wZikpOyB9CiAgICBpZiAoc2hha2luZ18gJiYgbm93IC0gbGFzdF9zdHJvbmdfID4gMzUwKSB7IHNoYWtpbmdfID0gZmFsc2U7IGZsb2F0IHAgPSBwZWFrXzsgcGVha18gPSAwOyByZXR1cm4gcCA+IDAuNmY7IH0KICAgIHJldHVybiBmYWxzZTsKICB9CiAgYm9vbCBzaGFraW5nKCkgY29uc3QgeyByZXR1cm4gc2hha2luZ187IH0KcHJpdmF0ZToKICBib29sIHNoYWtpbmdfID0gZmFsc2U7IHVpbnQzMl90IGxhc3Rfc3Ryb25nXyA9IDA7IGZsb2F0IHBlYWtfID0gMDsKfTsKCnN0YXRpYyBjb25zdCB1aW50MTZfdCBDX1RFWFQgPSBSR0I1NjUoMjQwLCAyNDQsIDI1MCksIENfRElNID0gUkdCNTY1KDEzMCwgMTQwLCAxNjApLCBDX0NZQU4gPSBSR0I1NjUoMCwgMjIwLCAyNDApLAogICAgICAgICAgICAgICAgICAgICAgQ19SRUQgPSBSR0I1NjUoMjIwLCA2MCwgNjApLCBDX1dPT0QgPSBSR0I1NjUoMTkwLCA4MCwgNjApLCBDX1dPT0RfRCA9IFJHQjU2NSgxMjAsIDQ1LCAzNSksIENfR1JFRU4gPSBSR0I1NjUoNjAsIDIzMCwgMTEwKSwKICAgICAgICAgICAgICAgICAgICAgIENfT1JBTkdFID0gUkdCNTY1KDI1NSwgMTcwLCAwKSwgQ19XSElURSA9IFJHQjU2NSgyNTAsIDI1MCwgMjUwKSwgQ19CRyA9IFJHQjU2NSgxMCwgMTQsIDI0KTsKCnN0YXRpYyBjb25zdCBOb3RlIE1FTF9TSEVOR1tdID0geyB7MTMxOSwgMTIwfSwgezE1NjgsIDEyMH0sIHsyMDkzLCAzNTB9IH07CnN0YXRpYyBjb25zdCBOb3RlIE1FTF9YSUFPW10gID0geyB7MTU2OCwgMTAwfSwgezEzMTksIDEwMH0sIHsxNTY4LCAxMDB9LCB7MTMxOSwgMTAwfSwgezE1NjgsIDI1MH0gfTsKc3RhdGljIGNvbnN0IE5vdGUgTUVMX1lJTltdICAgPSB7IHs1MjMsIDMwMH0sIHszOTIsIDQ1MH0gfTsKc3RhdGljIGNvbnN0IE5vdGUgTUVMX0RJQ0VbXSAgPSB7IHsxNzYwLCA2MH0sIHsyMDkzLCA2MH0sIHsyNjM3LCAxMjB9IH07CgovLyAtLS0tLS0tLS0tIOWNoeW4tiAx77ya5pOy562KIC0tLS0tLS0tLS0KLy8g5YWp5aGK562K5ZCE6Ieq6Zqo5qmf44CM5bmz6Z2i5pyd5LiK44CN5oiW44CM5Ye46Z2i5pyd5LiK44CN77ya5LiA5bmz5LiA5Ye477yd6IGW562K77yINTAl77yJ77yM5YWp5bmz77yd56yR562K77yIMjUl77yJ77yM5YWp5Ye477yd6Zmw562K77yIMjUl77yJCmNsYXNzIEppYW9iZWkgOiBwdWJsaWMgQ2FydHJpZGdlIHsKcHVibGljOgogIGNvbnN0IGNoYXIqIG5hbWUoKSBjb25zdCBvdmVycmlkZSB7IHJldHVybiAi5pOy562KIjsgfQogIGNvbnN0IGNoYXIqIGhpbnQoKSBjb25zdCBvdmVycmlkZSB7IHJldHVybiAi55So5Yqb55Sp5LiA5LiL6KOd572u44CA5ZCM5oyJIOi/lOWbnuOAgOmVt+aMiSDpgbjllq4iOyB9CiAgdm9pZCBiZWdpbih1aW50MzJfdCkgb3ZlcnJpZGUgeyByZXN1bHRfID0gMDsgY291bnRfID0gMDsgfQogIHZvaWQgdXBkYXRlKGNvbnN0IEdhbWVDdHgmIGMpIG92ZXJyaWRlIHsKICAgIGlmIChkZXRfLmZlZWQoYy5tYWcsIGMubm93KSkgewogICAgICBhXyA9IHJuZygpICYgMTsgYl8gPSBybmcoKSAmIDE7IGNvdW50XysrOwogICAgICByZXN1bHRfID0gKGFfICE9IGJfKSA/IDEgOiAoYV8gPyAyIDogMyk7ICAgICAgICAgIC8vIDEg6IGWIDIg56yR77yI5YWp5bmz77yJMyDpmbDvvIjlhanlh7jvvIkKICAgICAgaWYgKHJlc3VsdF8gPT0gMSkgeyBtZWxvZHkgPSBNRUxfU0hFTkc7IG1lbG9keV9uID0gMzsgfSBlbHNlIGlmIChyZXN1bHRfID09IDIpIHsgbWVsb2R5ID0gTUVMX1hJQU87IG1lbG9keV9uID0gNTsgfSBlbHNlIHsgbWVsb2R5ID0gTUVMX1lJTjsgbWVsb2R5X24gPSAyOyB9CiAgICAgIGhhbF9sb2coIlvmk7LnrYpdIOesrCAldSDmrKHvvJolcyIsIGNvdW50Xywgc3RhdHVzKCkpOwogICAgfQogIH0KICB2b2lkIGRyYXcoKSBvdmVycmlkZSB7CiAgICBpZiAoZGV0Xy5zaGFraW5nKCkpIHsgaGFsX2dmeF90ZXh0KFNDUkVFTl9XIC8gMiwgNjAsICLmk7Llh7rljrvigKYiLCBGT05UX0wsIENfT1JBTkdFLCBBTF9DRU5URVIpOyByZXR1cm47IH0KICAgIGlmICghcmVzdWx0XykgeyBoYWxfZ2Z4X3RleHQoU0NSRUVOX1cgLyAyLCA0MCwgIuW/g+S4rem7mOW/teWVj+mhjCIsIEZPTlRfTSwgQ19URVhULCBBTF9DRU5URVIpOyBoYWxfZ2Z4X3RleHQoU0NSRUVOX1cgLyAyLCA2NiwgIueEtuW+jOeUqOWKm+eUqeS4gOS4iyIsIEZPTlRfTSwgQ19ESU0sIEFMX0NFTlRFUik7IHJldHVybjsgfQogICAgZHJhd19ibG9jayg2MCwgNzAsIGFfKTsgZHJhd19ibG9jaygxODAsIDcwLCBiXyk7CiAgICBzdGF0aWMgY29uc3QgY2hhciogTkFNRVNbXSA9IHsgIiIsICLogZbnrYoiLCAi56yR562KIiwgIumZsOetiiIgfTsKICAgIHN0YXRpYyBjb25zdCBjaGFyKiBNRUFOW10gID0geyAiIiwgIuelnuaYjuaHieWFgSIsICLnpZ7mmI7nrJHogIzkuI3nrZTvvIzlho3llY/kuIDmrKEiLCAi56We5piO5LiN5YWB77yM5o+b5YCL5ZWP5rOVIiB9OwogICAgaGFsX2dmeF90ZXh0KFNDUkVFTl9XIC8gMiwgMjQsIE5BTUVTW3Jlc3VsdF9dLCBGT05UX0wsIHJlc3VsdF8gPT0gMSA/IENfR1JFRU4gOiByZXN1bHRfID09IDIgPyBDX09SQU5HRSA6IENfUkVELCBBTF9DRU5URVIpOwogICAgaGFsX2dmeF90ZXh0KFNDUkVFTl9XIC8gMiwgMTAwLCBNRUFOW3Jlc3VsdF9dLCBGT05UX1MsIENfRElNLCBBTF9DRU5URVIpOwogICAgY2hhciBiWzE2XTsgc25wcmludGYoYiwgc2l6ZW9mIGIsICLnrKwgJXUg5qyhIiwgY291bnRfKTsgaGFsX2dmeF90ZXh0KFNDUkVFTl9XIC0gNiwgMjQsIGIsIEZPTlRfUywgQ19ESU0sIEFMX1JJR0hUKTsKICB9CiAgY29uc3QgY2hhciogc3RhdHVzKCkgY29uc3Qgb3ZlcnJpZGUgeyBzdGF0aWMgY29uc3QgY2hhciogU1tdID0geyAi5bCa5pyq5pOyIiwgIuiBluetiiIsICLnrJHnrYoiLCAi6Zmw562KIiB9OyByZXR1cm4gU1tyZXN1bHRfXTsgfQpwcml2YXRlOgogIC8vIOS4gOWhiuetiu+8muWNiuaciOW9ouOAguW5s+mdouacneS4iueVq+aIkOa3uuiJsuaJgemVt+aWueW9ou+8iOeci+WIsOW5s+mdou+8ie+8m+WHuOmdouacneS4iueVq+aIkOa3seiJsuWck+W8p+eLgO+8iOeUqOW5vuWxpOefqeW9oueWiuWHuuW8p+W6pu+8iQogIHN0YXRpYyB2b2lkIGRyYXdfYmxvY2soaW50IGN4LCBpbnQgY3ksIGJvb2wgZmxhdF91cCkgewogICAgaWYgKGZsYXRfdXApIHsgaGFsX2dmeF9maWxsX3JlY3QoY3ggLSAzNiwgY3kgLSAxMCwgNzIsIDIwLCBDX1dPT0QpOyBoYWxfZ2Z4X2ZpbGxfcmVjdChjeCAtIDMyLCBjeSAtIDcsIDY0LCAzLCBSR0I1NjUoMjMwLCAxNTAsIDEyMCkpOyBoYWxfZ2Z4X3RleHQoY3gsIGN5ICsgMTQsICLlubMiLCBGT05UX1MsIENfRElNLCBBTF9DRU5URVIpOyB9CiAgICBlbHNlIHsgc3RhdGljIGNvbnN0IGludCBXW10gPSB7IDIwLCA0NCwgNjAsIDcwLCA3MiB9OyBmb3IgKGludCBpID0gMDsgaSA8IDU7IGkrKykgaGFsX2dmeF9maWxsX3JlY3QoY3ggLSBXW2ldIC8gMiwgY3kgLSAxNCArIGkgKiA1LCBXW2ldLCA1LCBpIDwgMiA/IENfV09PRCA6IENfV09PRF9EKTsgaGFsX2dmeF90ZXh0KGN4LCBjeSArIDE0LCAi5Ye4IiwgRk9OVF9TLCBDX0RJTSwgQUxfQ0VOVEVSKTsgfQogIH0KICBTaGFrZURldGVjdG9yIGRldF87IHVpbnQ4X3QgcmVzdWx0XyA9IDA7IGJvb2wgYV8gPSAwLCBiXyA9IDA7IHVpbnQzMl90IGNvdW50XyA9IDA7Cn07CgovLyAtLS0tLS0tLS0tIOWNoeW4tiAy77ya6aqw5a2QIC0tLS0tLS0tLS0KY2xhc3MgRGljZSA6IHB1YmxpYyBDYXJ0cmlkZ2UgewpwdWJsaWM6CiAgY29uc3QgY2hhciogbmFtZSgpIGNvbnN0IG92ZXJyaWRlIHsgcmV0dXJuICLpqrDlrZAiOyB9CiAgY29uc3QgY2hhciogaGludCgpIGNvbnN0IG92ZXJyaWRlIHsgcmV0dXJuICLnlKnkuIDkuIvmk7LpqrDjgIDlt6blj7Mg5o+b6aGG5pW444CA5ZCM5oyJIOi/lOWbniI7IH0KICB2b2lkIGJlZ2luKHVpbnQzMl90KSBvdmVycmlkZSB7IHJvbGxlZF8gPSBmYWxzZTsgfQogIHZvaWQgdXBkYXRlKGNvbnN0IEdhbWVDdHgmIGMpIG92ZXJyaWRlIHsKICAgIGlmIChjLmV2ID09IEVWX0xFRlQgJiYgbl8gPCAzKSBuXysrOwogICAgaWYgKGMuZXYgPT0gRVZfUklHSFQgJiYgbl8gPiAxKSBuXy0tOwogICAgaWYgKGRldF8uZmVlZChjLm1hZywgYy5ub3cpKSB7IGZvciAoaW50IGkgPSAwOyBpIDwgMzsgaSsrKSB2X1tpXSA9IDEgKyBybmcoKSAlIDY7IHJvbGxlZF8gPSB0cnVlOyBtZWxvZHkgPSBNRUxfRElDRTsgbWVsb2R5X24gPSAzOyBoYWxfbG9nKCJb6aqw5a2QXSAlZCAlZCAlZCIsIHZfWzBdLCB2X1sxXSwgdl9bMl0pOyB9CiAgfQogIHZvaWQgZHJhdygpIG92ZXJyaWRlIHsKICAgIGlmIChkZXRfLnNoYWtpbmcoKSkgeyBoYWxfZ2Z4X3RleHQoU0NSRUVOX1cgLyAyLCA2MCwgIuaQlumqsOS4reKApiIsIEZPTlRfTCwgQ19PUkFOR0UsIEFMX0NFTlRFUik7IHJldHVybjsgfQogICAgY2hhciBiWzI0XTsgc25wcmludGYoYiwgc2l6ZW9mIGIsICIlZCDpoYYiLCBuXyk7IGhhbF9nZnhfdGV4dChTQ1JFRU5fVyAtIDYsIDI0LCBiLCBGT05UX1MsIENfRElNLCBBTF9SSUdIVCk7CiAgICBpZiAoIXJvbGxlZF8pIHsgaGFsX2dmeF90ZXh0KFNDUkVFTl9XIC8gMiwgNTIsICLnlKnkuIDkuIvmk7LpqrDlrZAiLCBGT05UX00sIENfVEVYVCwgQUxfQ0VOVEVSKTsgcmV0dXJuOyB9CiAgICBpbnQgdG90YWwgPSAwOyBpbnQgeDAgPSBTQ1JFRU5fVyAvIDIgLSAobl8gKiA1NiAtIDgpIC8gMjsKICAgIGZvciAoaW50IGkgPSAwOyBpIDwgbl87IGkrKykgeyBkcmF3X2RpZSh4MCArIGkgKiA1NiwgNDQsIHZfW2ldKTsgdG90YWwgKz0gdl9baV07IH0KICAgIHNucHJpbnRmKGIsIHNpemVvZiBiLCAi5ZCI6KiIICVkIiwgdG90YWwpOyBoYWxfZ2Z4X3RleHQoU0NSRUVOX1cgLyAyLCAxMDAsIGIsIEZPTlRfTSwgQ19DWUFOLCBBTF9DRU5URVIpOwogIH0KICBjb25zdCBjaGFyKiBzdGF0dXMoKSBjb25zdCBvdmVycmlkZSB7IHN0YXRpYyBjaGFyIHNbMjRdOyBpZiAoIXJvbGxlZF8pIHJldHVybiAi5bCa5pyq5pOyIjsgc25wcmludGYocywgc2l6ZW9mIHMsICIlZCAlZCAlZCIsIHZfWzBdLCB2X1sxXSwgbl8gPiAyID8gdl9bMl0gOiAwKTsgcmV0dXJuIHM7IH0KcHJpdmF0ZToKICBzdGF0aWMgdm9pZCBkcmF3X2RpZShpbnQgeCwgaW50IHksIGludCB2KSB7CiAgICBoYWxfZ2Z4X2ZpbGxfcmVjdCh4LCB5LCA0OCwgNDgsIENfV0hJVEUpOyBoYWxfZ2Z4X2RyYXdfcmVjdCh4LCB5LCA0OCwgNDgsIENfRElNKTsKICAgIGF1dG8gcGlwID0gWyZdKGludCBweCwgaW50IHB5KSB7IGhhbF9nZnhfZmlsbF9yZWN0KHggKyBweCAtIDQsIHkgKyBweSAtIDQsIDgsIDgsIHYgPT0gMSA/IENfUkVEIDogQ19CRyk7IH07CiAgICBpZiAodiAlIDIpIHBpcCgyNCwgMjQpOwogICAgaWYgKHYgPiAxKSB7IHBpcCgxMiwgMTIpOyBwaXAoMzYsIDM2KTsgfQogICAgaWYgKHYgPiAzKSB7IHBpcCgzNiwgMTIpOyBwaXAoMTIsIDM2KTsgfQogICAgaWYgKHYgPT0gNikgeyBwaXAoMTIsIDI0KTsgcGlwKDM2LCAyNCk7IH0KICB9CiAgU2hha2VEZXRlY3RvciBkZXRfOyBpbnQgbl8gPSAyLCB2X1szXSA9IHsgMSwgMSwgMSB9OyBib29sIHJvbGxlZF8gPSBmYWxzZTsKfTsKCi8vIC0tLS0tLS0tLS0g5Y2h5bi2IDPvvJrph4/op5LlmajvvIjlgr7mlpzop5Lnm7TmjqXoroDvvIzlt6XlhbfpoZ7vvIkgLS0tLS0tLS0tLQpjbGFzcyBQcm90cmFjdG9yIDogcHVibGljIENhcnRyaWRnZSB7CnB1YmxpYzoKICBjb25zdCBjaGFyKiBuYW1lKCkgY29uc3Qgb3ZlcnJpZGUgeyByZXR1cm4gIumHj+inkuWZqCI7IH0KICBjb25zdCBjaGFyKiBoaW50KCkgY29uc3Qgb3ZlcnJpZGUgeyByZXR1cm4gIuW3piDmrbjpm7bjgIDlj7Mg5Y+W5raI5q246Zu244CA5ZCM5oyJIOi/lOWbniI7IH0KICB2b2lkIGJlZ2luKHVpbnQzMl90KSBvdmVycmlkZSB7fQogIHZvaWQgdXBkYXRlKGNvbnN0IEdhbWVDdHgmIGMpIG92ZXJyaWRlIHsgcF8gPSBjLnBpdGNoOyByXyA9IGMucm9sbDsgaWYgKGMuZXYgPT0gRVZfTEVGVCkgeyB6cF8gPSBwXzsgenJfID0gcl87IH0gaWYgKGMuZXYgPT0gRVZfUklHSFQpIHsgenBfID0genJfID0gMDsgfSB9CiAgdm9pZCBkcmF3KCkgb3ZlcnJpZGUgewogICAgY2hhciBiWzI0XTsgZmxvYXQgcCA9IHBfIC0genBfLCByID0gcl8gLSB6cl87CiAgICBoYWxfZ2Z4X3RleHQoNjAsIDMwLCAi5L+v5LuwIiwgRk9OVF9TLCBDX0RJTSwgQUxfQ0VOVEVSKTsgc25wcmludGYoYiwgc2l6ZW9mIGIsICIlKy4xZsKwIiwgcCk7IGhhbF9nZnhfdGV4dCg2MCwgNDYsIGIsIEZPTlRfTCwgQ19URVhULCBBTF9DRU5URVIpOwogICAgaGFsX2dmeF90ZXh0KDE4MCwgMzAsICLmqavmu74iLCBGT05UX1MsIENfRElNLCBBTF9DRU5URVIpOyBzbnByaW50ZihiLCBzaXplb2YgYiwgIiUrLjFmwrAiLCByKTsgaGFsX2dmeF90ZXh0KDE4MCwgNDYsIGIsIEZPTlRfTCwgQ19URVhULCBBTF9DRU5URVIpOwogICAgaW50IGN4ID0gU0NSRUVOX1cgLyAyLCBjeSA9IDExMjsgaGFsX2dmeF9maWxsX3JlY3QoY3ggLSA5MCwgY3ksIDE4MCwgMSwgQ19ESU0pOwogICAgZmxvYXQgcmFkID0gciAqIDAuMDE3NDUzM2Y7IGludCBkeCA9IChpbnQpKDgwICogY29zZihyYWQpKSwgZHkgPSAoaW50KSg4MCAqIHNpbmYocmFkKSk7CiAgICBmb3IgKGludCBpID0gLTgwOyBpIDw9IDgwOyBpICs9IDIpIHsgaW50IHB4ID0gY3ggKyAoaW50KShpICogY29zZihyYWQpKSwgcHkgPSBjeSAtIChpbnQpKGkgKiBzaW5mKHJhZCkpOyBoYWxfZ2Z4X2ZpbGxfcmVjdChweCwgcHkgLSAxLCAyLCAyLCBDX0NZQU4pOyB9CiAgICAodm9pZClkeDsgKHZvaWQpZHk7CiAgICBpZiAoenBfIHx8IHpyXykgaGFsX2dmeF90ZXh0KFNDUkVFTl9XIC0gNiwgMjQsICLlt7Lmrbjpm7YiLCBGT05UX1MsIENfT1JBTkdFLCBBTF9SSUdIVCk7CiAgfQpwcml2YXRlOgogIGZsb2F0IHBfID0gMCwgcl8gPSAwLCB6cF8gPSAwLCB6cl8gPSAwOwp9OwoKc3RhdGljIEppYW9iZWkgZ19qaWFvYmVpOyBzdGF0aWMgRGljZSBnX2RpY2U7IHN0YXRpYyBQcm90cmFjdG9yIGdfcHJvdHJhY3RvcjsKc3RhdGljIENhcnRyaWRnZSogY29uc3QgQ0FSVFJJREdFU1tdID0geyAmZ19qaWFvYmVpLCAmZ19kaWNlLCAmZ19wcm90cmFjdG9yIH07CkNhcnRyaWRnZSogY29uc3QqIGNhcnRyaWRnZXMoaW50KiBuKSB7ICpuID0gc2l6ZW9mIENBUlRSSURHRVMgLyBzaXplb2YgQ0FSVFJJREdFU1swXTsgcmV0dXJuIENBUlRSSURHRVM7IH0K">下載</a>　<span class="n">126 行</span></summary><pre>#include &quot;games.h&quot;
+#include &quot;../hal/hal.h&quot;
+#include &lt;stdio.h&gt;
+#include &lt;math.h&gt;
+
+// ---------- 共用 ----------
+static uint32_t rng_state = 0x2545F491u;
+static void rng_mix(uint32_t v) { rng_state ^= v; rng_state ^= rng_state &lt;&lt; 13; rng_state ^= rng_state &gt;&gt; 17; rng_state ^= rng_state &lt;&lt; 5; }
+static uint32_t rng() { rng_mix(0x9E3779B9u); return rng_state; }
+
+// 甩動偵測：|a| 偏離 1 g 超過門檻算「甩動中」，甩完靜止一段時間才出結果（避免連續出好幾次）
+class ShakeDetector {
+public:
+  // 回傳 true 表示「剛剛甩完、可以出結果」
+  bool feed(float mag, uint32_t now) {
+    rng_mix((uint32_t)(mag * 100000) ^ now);                     // 用真實雜訊攪亂亂數
+    bool strong = fabsf(mag - 1.0f) &gt; 0.6f;
+    if (strong) { shaking_ = true; last_strong_ = now; peak_ = fmaxf(peak_, fabsf(mag - 1.0f)); }
+    if (shaking_ &amp;&amp; now - last_strong_ &gt; 350) { shaking_ = false; float p = peak_; peak_ = 0; return p &gt; 0.6f; }
+    return false;
+  }
+  bool shaking() const { return shaking_; }
+private:
+  bool shaking_ = false; uint32_t last_strong_ = 0; float peak_ = 0;
+};
+
+static const uint16_t C_TEXT = RGB565(240, 244, 250), C_DIM = RGB565(130, 140, 160), C_CYAN = RGB565(0, 220, 240),
+                      C_RED = RGB565(220, 60, 60), C_WOOD = RGB565(190, 80, 60), C_WOOD_D = RGB565(120, 45, 35), C_GREEN = RGB565(60, 230, 110),
+                      C_ORANGE = RGB565(255, 170, 0), C_WHITE = RGB565(250, 250, 250), C_BG = RGB565(10, 14, 24);
+
+static const Note MEL_SHENG[] = { {1319, 120}, {1568, 120}, {2093, 350} };
+static const Note MEL_XIAO[]  = { {1568, 100}, {1319, 100}, {1568, 100}, {1319, 100}, {1568, 250} };
+static const Note MEL_YIN[]   = { {523, 300}, {392, 450} };
+static const Note MEL_DICE[]  = { {1760, 60}, {2093, 60}, {2637, 120} };
+
+// ---------- 卡帶 1：擲筊 ----------
+// 兩塊筊各自隨機「平面朝上」或「凸面朝上」：一平一凸＝聖筊（50%），兩平＝笑筊（25%），兩凸＝陰筊（25%）
+class Jiaobei : public Cartridge {
+public:
+  const char* name() const override { return &quot;擲筊&quot;; }
+  const char* hint() const override { return &quot;用力甩一下裝置　同按 返回　長按 選單&quot;; }
+  void begin(uint32_t) override { result_ = 0; count_ = 0; }
+  void update(const GameCtx&amp; c) override {
+    if (det_.feed(c.mag, c.now)) {
+      a_ = rng() &amp; 1; b_ = rng() &amp; 1; count_++;
+      result_ = (a_ != b_) ? 1 : (a_ ? 2 : 3);          // 1 聖 2 笑（兩平）3 陰（兩凸）
+      if (result_ == 1) { melody = MEL_SHENG; melody_n = 3; } else if (result_ == 2) { melody = MEL_XIAO; melody_n = 5; } else { melody = MEL_YIN; melody_n = 2; }
+      hal_log(&quot;[擲筊] 第 %u 次：%s&quot;, count_, status());
+    }
+  }
+  void draw() override {
+    if (det_.shaking()) { hal_gfx_text(SCREEN_W / 2, 60, &quot;擲出去…&quot;, FONT_L, C_ORANGE, AL_CENTER); return; }
+    if (!result_) { hal_gfx_text(SCREEN_W / 2, 40, &quot;心中默念問題&quot;, FONT_M, C_TEXT, AL_CENTER); hal_gfx_text(SCREEN_W / 2, 66, &quot;然後用力甩一下&quot;, FONT_M, C_DIM, AL_CENTER); return; }
+    draw_block(60, 70, a_); draw_block(180, 70, b_);
+    static const char* NAMES[] = { &quot;&quot;, &quot;聖筊&quot;, &quot;笑筊&quot;, &quot;陰筊&quot; };
+    static const char* MEAN[]  = { &quot;&quot;, &quot;神明應允&quot;, &quot;神明笑而不答，再問一次&quot;, &quot;神明不允，換個問法&quot; };
+    hal_gfx_text(SCREEN_W / 2, 24, NAMES[result_], FONT_L, result_ == 1 ? C_GREEN : result_ == 2 ? C_ORANGE : C_RED, AL_CENTER);
+    hal_gfx_text(SCREEN_W / 2, 100, MEAN[result_], FONT_S, C_DIM, AL_CENTER);
+    char b[16]; snprintf(b, sizeof b, &quot;第 %u 次&quot;, count_); hal_gfx_text(SCREEN_W - 6, 24, b, FONT_S, C_DIM, AL_RIGHT);
+  }
+  const char* status() const override { static const char* S[] = { &quot;尚未擲&quot;, &quot;聖筊&quot;, &quot;笑筊&quot;, &quot;陰筊&quot; }; return S[result_]; }
+private:
+  // 一塊筊：半月形。平面朝上畫成淺色扁長方形（看到平面）；凸面朝上畫成深色圓弧狀（用幾層矩形疊出弧度）
+  static void draw_block(int cx, int cy, bool flat_up) {
+    if (flat_up) { hal_gfx_fill_rect(cx - 36, cy - 10, 72, 20, C_WOOD); hal_gfx_fill_rect(cx - 32, cy - 7, 64, 3, RGB565(230, 150, 120)); hal_gfx_text(cx, cy + 14, &quot;平&quot;, FONT_S, C_DIM, AL_CENTER); }
+    else { static const int W[] = { 20, 44, 60, 70, 72 }; for (int i = 0; i &lt; 5; i++) hal_gfx_fill_rect(cx - W[i] / 2, cy - 14 + i * 5, W[i], 5, i &lt; 2 ? C_WOOD : C_WOOD_D); hal_gfx_text(cx, cy + 14, &quot;凸&quot;, FONT_S, C_DIM, AL_CENTER); }
+  }
+  ShakeDetector det_; uint8_t result_ = 0; bool a_ = 0, b_ = 0; uint32_t count_ = 0;
+};
+
+// ---------- 卡帶 2：骰子 ----------
+class Dice : public Cartridge {
+public:
+  const char* name() const override { return &quot;骰子&quot;; }
+  const char* hint() const override { return &quot;甩一下擲骰　左右 換顆數　同按 返回&quot;; }
+  void begin(uint32_t) override { rolled_ = false; }
+  void update(const GameCtx&amp; c) override {
+    if (c.ev == EV_LEFT &amp;&amp; n_ &lt; 3) n_++;
+    if (c.ev == EV_RIGHT &amp;&amp; n_ &gt; 1) n_--;
+    if (det_.feed(c.mag, c.now)) { for (int i = 0; i &lt; 3; i++) v_[i] = 1 + rng() % 6; rolled_ = true; melody = MEL_DICE; melody_n = 3; hal_log(&quot;[骰子] %d %d %d&quot;, v_[0], v_[1], v_[2]); }
+  }
+  void draw() override {
+    if (det_.shaking()) { hal_gfx_text(SCREEN_W / 2, 60, &quot;搖骰中…&quot;, FONT_L, C_ORANGE, AL_CENTER); return; }
+    char b[24]; snprintf(b, sizeof b, &quot;%d 顆&quot;, n_); hal_gfx_text(SCREEN_W - 6, 24, b, FONT_S, C_DIM, AL_RIGHT);
+    if (!rolled_) { hal_gfx_text(SCREEN_W / 2, 52, &quot;甩一下擲骰子&quot;, FONT_M, C_TEXT, AL_CENTER); return; }
+    int total = 0; int x0 = SCREEN_W / 2 - (n_ * 56 - 8) / 2;
+    for (int i = 0; i &lt; n_; i++) { draw_die(x0 + i * 56, 44, v_[i]); total += v_[i]; }
+    snprintf(b, sizeof b, &quot;合計 %d&quot;, total); hal_gfx_text(SCREEN_W / 2, 100, b, FONT_M, C_CYAN, AL_CENTER);
+  }
+  const char* status() const override { static char s[24]; if (!rolled_) return &quot;尚未擲&quot;; snprintf(s, sizeof s, &quot;%d %d %d&quot;, v_[0], v_[1], n_ &gt; 2 ? v_[2] : 0); return s; }
+private:
+  static void draw_die(int x, int y, int v) {
+    hal_gfx_fill_rect(x, y, 48, 48, C_WHITE); hal_gfx_draw_rect(x, y, 48, 48, C_DIM);
+    auto pip = [&amp;](int px, int py) { hal_gfx_fill_rect(x + px - 4, y + py - 4, 8, 8, v == 1 ? C_RED : C_BG); };
+    if (v % 2) pip(24, 24);
+    if (v &gt; 1) { pip(12, 12); pip(36, 36); }
+    if (v &gt; 3) { pip(36, 12); pip(12, 36); }
+    if (v == 6) { pip(12, 24); pip(36, 24); }
+  }
+  ShakeDetector det_; int n_ = 2, v_[3] = { 1, 1, 1 }; bool rolled_ = false;
+};
+
+// ---------- 卡帶 3：量角器（傾斜角直接讀，工具類） ----------
+class Protractor : public Cartridge {
+public:
+  const char* name() const override { return &quot;量角器&quot;; }
+  const char* hint() const override { return &quot;左 歸零　右 取消歸零　同按 返回&quot;; }
+  void begin(uint32_t) override {}
+  void update(const GameCtx&amp; c) override { p_ = c.pitch; r_ = c.roll; if (c.ev == EV_LEFT) { zp_ = p_; zr_ = r_; } if (c.ev == EV_RIGHT) { zp_ = zr_ = 0; } }
+  void draw() override {
+    char b[24]; float p = p_ - zp_, r = r_ - zr_;
+    hal_gfx_text(60, 30, &quot;俯仰&quot;, FONT_S, C_DIM, AL_CENTER); snprintf(b, sizeof b, &quot;%+.1f°&quot;, p); hal_gfx_text(60, 46, b, FONT_L, C_TEXT, AL_CENTER);
+    hal_gfx_text(180, 30, &quot;橫滾&quot;, FONT_S, C_DIM, AL_CENTER); snprintf(b, sizeof b, &quot;%+.1f°&quot;, r); hal_gfx_text(180, 46, b, FONT_L, C_TEXT, AL_CENTER);
+    int cx = SCREEN_W / 2, cy = 112; hal_gfx_fill_rect(cx - 90, cy, 180, 1, C_DIM);
+    float rad = r * 0.0174533f; int dx = (int)(80 * cosf(rad)), dy = (int)(80 * sinf(rad));
+    for (int i = -80; i &lt;= 80; i += 2) { int px = cx + (int)(i * cosf(rad)), py = cy - (int)(i * sinf(rad)); hal_gfx_fill_rect(px, py - 1, 2, 2, C_CYAN); }
+    (void)dx; (void)dy;
+    if (zp_ || zr_) hal_gfx_text(SCREEN_W - 6, 24, &quot;已歸零&quot;, FONT_S, C_ORANGE, AL_RIGHT);
+  }
+private:
+  float p_ = 0, r_ = 0, zp_ = 0, zr_ = 0;
+};
+
+static Jiaobei g_jiaobei; static Dice g_dice; static Protractor g_protractor;
+static Cartridge* const CARTRIDGES[] = { &amp;g_jiaobei, &amp;g_dice, &amp;g_protractor };
+Cartridge* const* cartridges(int* n) { *n = sizeof CARTRIDGES / sizeof CARTRIDGES[0]; return CARTRIDGES; }
+</pre></details></section>
+<p class="note">© 2026 趙珩宇．生活科技　本頁由 tools/build_extensions_page.py 產生。</p>
+</body></html>

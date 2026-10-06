@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="zh-Hant-TW"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>計步器模擬器</title>
+<style>
+:root{--bg:#ecebe4;--ink:#1a1a18;--mute:#6a665c;--line:#cfcabd;--card:#fbfaf6;--cyan:#0a7f8c;--green:#2b8a3e;--orange:#c7640b;--red:#b8325a}
+*{box-sizing:border-box;margin:0;padding:0;font-family:"Noto Sans TC","PingFang TC","Microsoft JhengHei",system-ui,sans-serif}
+body{background:var(--bg);color:var(--ink);padding:14px}
+header{display:flex;justify-content:space-between;align-items:baseline;border-bottom:3px solid var(--ink);padding-bottom:6px;margin-bottom:12px}
+h1{font-size:1.25rem;letter-spacing:.06em}#ver{color:var(--mute);font-size:.85rem}
+main{display:grid;grid-template-columns:minmax(380px,760px) minmax(360px,1fr);gap:14px;align-items:start}
+@media(max-width:900px){main{grid-template-columns:1fr}}
+.device{background:#23262b;border-radius:18px;padding:22px 22px 14px;box-shadow:inset 0 0 0 3px #3a3e45}
+.device canvas{display:block;width:100%;aspect-ratio:240/135;background:#000;border-radius:4px;image-rendering:auto}
+.bl{height:4px;margin:8px auto 0;background:#000;width:40%}
+.keys{display:flex;gap:10px;margin-top:10px;flex-wrap:wrap}
+.keys button{flex:1;min-width:110px;padding:12px;border:2px solid var(--ink);background:var(--card);font-size:1rem;cursor:pointer;user-select:none}
+.keys button.down{background:var(--ink);color:#fff}
+.keys .both{border-style:dashed}
+.hint{color:var(--mute);font-size:.8rem;margin-top:6px;line-height:1.6}
+.tabs{display:flex;gap:3px;flex-wrap:wrap}.tabs button{padding:8px 12px;border:2px solid var(--ink);border-bottom:none;background:transparent;cursor:pointer;font-size:.95rem}
+.tabs button.on{background:var(--ink);color:#fff}
+.panel{border:2px solid var(--ink);background:var(--card);padding:14px;min-height:460px}
+.panel>section{display:none}.panel>section.on{display:block}
+h2{font-size:.85rem;color:var(--mute);font-weight:500;letter-spacing:.1em;margin:10px 0 6px}
+.row{display:flex;gap:10px;flex-wrap:wrap;align-items:center}.row>label{flex:1;min-width:140px;font-size:.85rem;color:var(--mute)}
+input[type=range]{width:100%}
+button.sm{padding:6px 12px;border:1.5px solid var(--ink);background:#fff;cursor:pointer;font-size:.9rem}
+button.sm.on{background:var(--ink);color:#fff}
+.pad{width:200px;height:200px;border:2px solid var(--ink);border-radius:50%;position:relative;margin:6px auto;background:
+ linear-gradient(var(--line),var(--line)) center/100% 1px no-repeat,linear-gradient(var(--line),var(--line)) center/1px 100% no-repeat;cursor:crosshair;touch-action:none}
+.pad i{position:absolute;width:16px;height:16px;border-radius:50%;background:var(--orange);left:50%;top:50%;transform:translate(-50%,-50%);pointer-events:none}
+pre{background:#14161a;color:#cfe3d4;font:12px/1.5 ui-monospace,Menlo,monospace;padding:10px;height:380px;overflow:auto;white-space:pre-wrap}
+table{width:100%;border-collapse:collapse;font-size:.85rem}td,th{border-bottom:1px solid var(--line);padding:5px 6px;text-align:left;font-variant-numeric:tabular-nums}
+td.k{font-family:ui-monospace,Menlo,monospace}
+iframe{width:100%;height:560px;border:1px solid var(--line);background:#fff}
+#wave{width:100%;height:120px;background:#14161a;display:block}
+.kv{display:flex;justify-content:space-between;font-size:.9rem;padding:4px 0;border-bottom:1px dashed var(--line);font-variant-numeric:tabular-nums}
+.buzz{display:inline-block;width:12px;height:12px;border-radius:50%;background:#999;vertical-align:middle;margin-left:6px}.buzz.on{background:var(--orange);box-shadow:0 0 8px var(--orange)}
+#wiring svg{width:100%;height:420px;border:1px solid var(--line);background:#fff;touch-action:none}
+.res{font-size:.9rem;line-height:1.7;margin-top:8px}.res .ok{color:var(--green)}.res .bad{color:var(--red)}.res .warn{color:var(--orange)}
+.note{font-size:.82rem;color:var(--mute);line-height:1.6;margin-top:6px}
+</style></head><body>
+<header><h1>計步器模擬器</h1><div><a href="extensions.html" style="color:var(--cyan);margin-right:14px;font-size:.9rem">延伸專案</a><a href="講義.pdf" style="color:var(--cyan);margin-right:14px;font-size:.9rem">講義 PDF</a><a href="clips.html" style="color:var(--cyan);margin-right:14px;font-size:.9rem">教學短片</a><span id="ver">載入中…</span></div></header>
+<main>
+ <div>
+  <div class="device"><canvas id="screen" width="720" height="405"></canvas><div class="bl"></div></div>
+  <div class="keys">
+   <button id="bl">左鍵（GPIO0）</button><button id="br">右鍵（GPIO35）</button>
+   <button class="both" id="bs">同按 短放</button><button class="both" id="bb">同按 長按</button>
+  </div>
+  <p class="hint">鍵盤：← 左鍵　→ 右鍵　空白鍵 同按短放　Enter 同按長按。按住滑鼠就是按著按鍵。<br>
+  螢幕文字由瀏覽器以 PingFang TC 描繪；真機用的點陣字也是從同一套字型描出來的（tools/gen_font.py），位置與字形一致。</p>
+  <div class="row" style="margin-top:8px">
+   <label>模擬時間 <b id="simclock">0.0 s</b></label>
+   <label>速度 <select id="speed"><option value="1">1×</option><option value="10">10×</option><option value="60">60×</option><option value="600">600×</option></select></label>
+   <button class="sm" id="pause">暫停</button><button class="sm" id="nextday">跳到明天</button><button class="sm" id="reboot">重新開機</button>
+  </div>
+ </div>
+ <div>
+  <div class="tabs"><button data-t="sens" class="on">感測器</button><button data-t="log">序列埠</button><button data-t="nvs">儲存</button><button data-t="dash">儀表板</button><button data-t="wiring">接線</button></div>
+  <div class="panel">
+   <section id="sens" class="on">
+    <h2>傾斜（拖曳圓盤）</h2>
+    <div class="pad" id="pad"><i></i></div>
+    <div class="row"><div class="kv" style="flex:1"><span>俯仰</span><span id="vpitch">0.0°</span></div><div class="kv" style="flex:1"><span>橫滾</span><span id="vroll">0.0°</span></div>
+     <button class="sm" id="flat">放平</button></div>
+    <h2>走路產生器</h2>
+    <div class="row"><button class="sm" id="walk">開始走路</button><button class="sm" id="shake">搖晃一下</button>
+     <label>步頻 <span id="vcad">110</span> 步/分<input type="range" id="cad" min="60" max="180" value="110"></label>
+     <label>振幅 <span id="vamp">0.25</span> g<input type="range" id="amp" min="0.05" max="0.6" step="0.01" value="0.25"></label></div>
+    <canvas id="wave"></canvas>
+    <div class="row"><div class="kv" style="flex:1"><span>加速度 (g)</span><span id="vacc">—</span></div><div class="kv" style="flex:1"><span>步數</span><span id="vsteps">—</span></div></div>
+    <h2>電池與蜂鳴器</h2>
+    <div class="row"><label>電池 <span id="vbat">3.90</span> V<input type="range" id="bat" min="3.2" max="4.25" step="0.01" value="3.9"></label>
+     <label><input type="checkbox" id="nobat"> 沒接電池</label><span>蜂鳴器 <i class="buzz" id="buzz"></i> <label><input type="checkbox" id="mute"> 靜音</label></span></div>
+   </section>
+   <section id="log"><pre id="serial"></pre><button class="sm" id="clearlog" style="margin-top:6px">清除</button></section>
+   <section id="nvs"><table><thead><tr><th>key</th><th>長度</th><th>原始（hex）</th><th>解讀</th></tr></thead><tbody id="nvsbody"></tbody></table>
+    <button class="sm" id="clearnvs" style="margin-top:8px">清除全部（模擬抹除 NVS）</button>
+    <p class="note">對應真機 Preferences 的 namespace「pedolab」。步數每 60 秒自動存一次，所以剛走的步數要等一下才會出現。</p></section>
+   <section id="dash"><iframe id="dashframe" title="儀表板"></iframe><p class="note">這就是裝置內建的網頁，直接對模擬器裡的程式發 API。真機要先連熱點再開 http://192.168.4.1/。</p></section>
+   <section id="wiring">
+    <div class="row"><button class="sm" id="check">檢查接線</button><button class="sm" id="clearwires">清除接線</button><button class="sm" id="autowire">示範接法（開關串電池）</button><button class="sm" id="autowire2">示範說明書接法（EN–GND）</button>
+     <span class="note">點一個腳位、再點另一個腳位＝接一條線；點線＝刪除。接錯會反映到模擬器（找不到加速度計、蜂鳴器不響）。</span></div>
+    <svg id="svg" viewBox="0 0 760 420"></svg>
+    <div class="res" id="wres">尚未檢查。</div>
+   </section>
+  </div>
+ </div>
+</main>
+<script src="sim.js"></script>
+<script src="wiring.js"></script>
+<script src="app.js"></script>
+</body></html>

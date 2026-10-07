@@ -137,7 +137,7 @@ const Module = await createSim({
 const http = Module.cwrap('sim_http', 'number', ['string', 'string', 'string']);
 const httpCode = Module.cwrap('sim_http_code', 'number', []), httpType = Module.cwrap('sim_http_type', 'number', []);
 const api = (method, path, body = '') => { const p = http(method, path, body); return { code: httpCode(), type: Module.UTF8ToString(httpType()), body: Module.UTF8ToString(p) }; };
-window.simFetch = (url, opts = {}) => { const u = new URL(url, 'http://sim/'); const r = api((opts.method || 'GET').toUpperCase(), u.pathname, opts.body ? String(opts.body) : '');
+window.simFetch = (url, opts = {}) => { const u = new URL(url, 'http://sim/'); const r = api((opts.method || 'GET').toUpperCase(), u.pathname, opts.body ? String(opts.body) : u.search.slice(1));   // GET 查詢參數當 body（和真機 WebServer 一樣）
   return Promise.resolve(new Response(r.body, { status: r.code, headers: { 'Content-Type': r.type } })); };
 $('ver').textContent = '韌體 v' + Module.UTF8ToString(Module._sim_version()) + '（WebAssembly）';
 renderNvs();

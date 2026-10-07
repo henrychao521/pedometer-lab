@@ -74,7 +74,7 @@ iframe{width:100%;height:560px;border:1px solid var(--line);background:#fff}
     <div class="row"><div class="kv" style="flex:1"><span>加速度 (g)</span><span id="vacc">—</span></div><div class="kv" style="flex:1"><span>步數</span><span id="vsteps">—</span></div></div>
     <h2>電池與蜂鳴器</h2>
     <div class="row"><label>電池 <span id="vbat">3.90</span> V<input type="range" id="bat" min="3.2" max="4.25" step="0.01" value="3.9"></label>
-     <label><input type="checkbox" id="nobat"> 沒接電池</label><span>蜂鳴器 <i class="buzz" id="buzz"></i> <label><input type="checkbox" id="mute"> 靜音</label></span></div>
+     <label><input type="checkbox" id="nobat"> 沒接電池</label><label><input type="checkbox" id="usb"> 接上 USB（電腦）</label><span>蜂鳴器 <i class="buzz" id="buzz"></i> <label><input type="checkbox" id="mute"> 靜音</label></span></div>
    </section>
    <section id="log"><pre id="serial"></pre><button class="sm" id="clearlog" style="margin-top:6px">清除</button></section>
    <section id="nvs"><table><thead><tr><th>key</th><th>長度</th><th>原始（hex）</th><th>解讀</th></tr></thead><tbody id="nvsbody"></tbody></table>

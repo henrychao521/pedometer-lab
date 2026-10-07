@@ -97,6 +97,10 @@ $('clearnvs').onclick = () => { if (confirm('清除模擬器的全部儲存資�
 // ---------- 序列埠 ----------
 const serial = $('serial');
 const log = s => { serial.textContent += `[${(simTime / 1000).toFixed(3).padStart(9)}] ${s}\n`; if (serial.textContent.length > 60000) serial.textContent = serial.textContent.slice(-40000); serial.scrollTop = serial.scrollHeight; };
+// 韌體接上電腦會印 TIME? 要時間；模擬器扮演那台電腦，用瀏覽器的時間回 time <epoch> <tz_min>（真機由 tools/sync_time.py --watch 或燒錄頁回）
+const origLog = log;
+const logHook = s => { if (s.startsWith('TIME?') && $('usb').checked) setTimeout(() => { const ep = Math.floor(Date.now() / 1000), tz = -new Date().getTimezoneOffset();
+  api('POST', '/api/time', `epoch=${ep}&tz_min=${tz}`); origLog(`[電腦] 收到 TIME?，回覆 time ${ep} ${tz}`); }, 300); };
 $('clearlog').onclick = () => serial.textContent = '';
 
 // ---------- 載入 WebAssembly ----------
@@ -116,10 +120,10 @@ const Module = await createSim({
     kvGet: k => localStorage.getItem(KV + k),
     kvSet(k, hex) { localStorage.setItem(KV + k, hex); renderNvs(); },
     kvRemove(k) { localStorage.removeItem(KV + k); renderNvs(); },
-    battery: () => $('nobat').checked ? 0 : +$('bat').value,
+    battery: () => $('nobat').checked ? 0 : $('usb').checked ? 4.9 : +$('bat').value,   // 接上 USB：量到的是 USB 的 4.9 V
     netBegin(ap, pass, sta) { log(`（模擬器）熱點 ${ap} 密碼 ${pass}${sta ? '，另嘗試連 ' + sta : ''}`); },
     staConnected: () => false,
-    log,
+    log: s => { log(s); logHook(s); },
     powerOff() { paused = true; const o = document.createElement('div'); o.id = 'poweroff';
       o.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.82);color:#ddd;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;font-size:1.1rem;z-index:99;cursor:pointer';
       o.innerHTML = '<div style="font-size:1.6rem">已關機（深度睡眠）</div><div>真機此時約 0.1～2 mA；時鐘由 RTC 繼續走</div><div style="color:#8fb8c2">點一下＝按右鍵開機（重新載入）</div>';

@@ -105,6 +105,21 @@ async function flashImages(imgs) {
 }
 $('flash').onclick = () => flashImages(images);
 
+// ---------------- OTA：不用 USB，裝置開熱點（設定 → 無線網路）後，電腦連上熱點，把 app .bin POST 到 http://<裝置 IP>/update
+$('ota').onclick = async () => {
+  const src = images ? images.find(i => i.offset === 0x10000) : (preManifest ? { url: 'firmware/app.bin', name: 'app.bin' } : null);
+  if (!src) { $('otamsg').textContent = '先「存檔並編譯」（或等預編譯韌體清單載入）'; $('otamsg').className = 'warn'; return; }
+  if (location.protocol === 'https:') { $('otamsg').textContent = 'https 網頁不能連 http 的裝置（混合內容），請在本機 make ide 或用裝置的 /update 頁上傳'; $('otamsg').className = 'warn'; return; }
+  const ip = $('otaip').value.trim() || '192.168.4.1', pw = $('otapw').value;
+  $('ota').disabled = true; $('otamsg').textContent = `上傳 ${src.name} 到 http://${ip}/update …`; $('otamsg').className = '';
+  try {
+    const blob = await (await fetch(src.url)).blob(); const fd = new FormData(); fd.append('fw', blob, 'pedometer_lab.ino.bin');
+    const r = await fetch(`http://${ip}/update`, { method: 'POST', headers: { Authorization: 'Basic ' + btoa('admin:' + pw) }, body: fd });
+    const t = await r.text(); $('otamsg').textContent = `${r.status} ${t}`; $('otamsg').className = r.ok ? 'ok' : 'bad'; L(`OTA → ${r.status} ${t}`);
+  } catch (e) { $('otamsg').textContent = '連不到裝置：電腦要先連上裝置的熱點（計步器-GOTT），且裝置停在「無線網路」畫面或 10 分鐘內有人用網頁；' + e.message; $('otamsg').className = 'bad'; }
+  $('ota').disabled = false;
+};
+
 // 預編譯的正式韌體（網站 firmware/manifest.json；本機伺服器也可能有）
 let preManifest = null;
 fetch('firmware/manifest.json').then(r => r.ok ? r.json() : null).then(m => { preManifest = m; if (m) { $('flashpre').title = `正式韌體 ${m.built}`; $('flashpre').disabled = !port; } }).catch(() => {});

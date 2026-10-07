@@ -122,6 +122,7 @@ const Module = await createSim({
     kvRemove(k) { localStorage.removeItem(KV + k); renderNvs(); },
     battery: () => $('nobat').checked ? 0 : $('usb').checked ? 4.9 : +$('bat').value,   // 接上 USB：量到的是 USB 的 4.9 V
     netBegin(ap, pass, sta) { log(`（模擬器）熱點 ${ap} 密碼 ${pass}${sta ? '，另嘗試連 ' + sta : ''}`); },
+    netStop() { log('（模擬器）熱點與網頁伺服器已關閉'); },
     staConnected: () => false,
     log: s => { log(s); logHook(s); },
     powerOff() { paused = true; const o = document.createElement('div'); o.id = 'poweroff';

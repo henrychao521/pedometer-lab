@@ -50,7 +50,9 @@ iframe{width:100%;height:420px;border:1px solid var(--line);background:#fff}
     <div class="row"><button id="connect" class="pri">連接</button><span id="portmsg" style="font-size:.85rem"></span></div>
     <div class="drv" id="drv"></div></div></div>
    <div class="step"><b class="n">4</b><div class="s"><b>燒錄</b>：把編好的韌體寫進板子（約 1 分鐘，1.2 MB @ 230400）。寫完自動重開機並開始監看序列埠。<small>設定、步數都在 NVS 分區，燒錄不會清掉。</small>
-    <div class="row"><button id="flash" class="pri" disabled>燒錄</button><button id="flashpre" disabled>燒錄預編譯的正式韌體</button><span id="flashmsg" style="font-size:.85rem"></span></div><div id="bar"><i></i></div></div></div>
+    <div class="row"><button id="flash" class="pri" disabled>燒錄</button><button id="flashpre" disabled>燒錄預編譯的正式韌體</button><span id="flashmsg" style="font-size:.85rem"></span></div><div id="bar"><i></i></div>
+    <div class="row" style="margin-top:10px"><b style="font-size:.9rem">或 OTA（不用 USB）</b><input id="otaip" value="192.168.4.1" style="width:130px;padding:6px;border:2px solid var(--ink)" title="裝置 IP"><input id="otapw" type="password" value="1234" style="width:90px;padding:6px;border:2px solid var(--ink)" title="網頁密碼（admin）"><button id="ota">OTA 燒錄（Wi-Fi）</button><span id="otamsg" style="font-size:.85rem"></span></div>
+    <small>裝置先到「設定 → 無線網路」開熱點，這台電腦連上熱點「計步器-GOTT」，再按；上傳的是編好的 app .bin，約一分鐘後裝置自動重開機。</small></div></div>
    <div class="step" style="border-bottom:0"><b class="n">5</b><div class="s"><b>序列埠監看</b>：板子印的訊息會出現在下面；看到 <code>TIME?</code>（接上電腦自動對時）會用這台電腦的時間回覆。
     <div class="row"><button id="monitor" disabled>開始監看</button><button id="stopmon" disabled>停止</button><input id="cmd" placeholder="輸入指令：status／time／off" style="flex:1;min-width:160px;padding:8px;border:2px solid var(--ink)"><button id="send" disabled>送出</button></div>
     <pre class="log" id="mon" style="height:150px"></pre></div></div>

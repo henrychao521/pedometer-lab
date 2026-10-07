@@ -111,6 +111,7 @@ const Module = await createSim({
     fill(c) { ctx.fillStyle = css565(c); ctx.fillRect(0, 0, 240, 135); },
     fillRect(x, y, w, h, c) { ctx.fillStyle = css565(c); ctx.fillRect(x, y, w, h); },
     drawRect(x, y, w, h, c) { ctx.strokeStyle = css565(c); ctx.lineWidth = 1; ctx.strokeRect(x + .5, y + .5, w - 1, h - 1); },
+    textWidth(s, f) { ctx.font = `${FONT[f] || '16px'} "Noto Sans TC","PingFang TC","Microsoft JhengHei",sans-serif`; return Math.ceil(ctx.measureText(s).width); },
     text(x, y, s, f, c, a) { ctx.fillStyle = css565(c); ctx.font = `${FONT[f] || '16px'} "Noto Sans TC","PingFang TC","Microsoft JhengHei",sans-serif`; ctx.textBaseline = 'top'; ctx.textAlign = ['left', 'center', 'right'][a]; ctx.fillText(s, x, y + (f === 24 ? 1 : 2)); },
     backlight(p) { backlight = p; cv.style.filter = `brightness(${0.15 + p / 100 * 0.85})`; },
     button: id => btn[id],

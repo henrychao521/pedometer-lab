@@ -1,0 +1,26 @@
+{
+ "built": "2026-10-07 15:13",
+ "board": "LilyGO T-Display (ESP32, CH9102)",
+ "images": [
+  {
+   "offset": 4096,
+   "name": "bootloader.bin",
+   "size": 25024
+  },
+  {
+   "offset": 32768,
+   "name": "partitions.bin",
+   "size": 3072
+  },
+  {
+   "offset": 57344,
+   "name": "boot_app0.bin",
+   "size": 8192
+  },
+  {
+   "offset": 65536,
+   "name": "app.bin",
+   "size": 1228256
+  }
+ ]
+}

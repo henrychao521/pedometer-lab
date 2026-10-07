@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="zh-Hant-TW"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>寫程式／燒錄 — 計步器</title>
+<link rel="stylesheet" href="vendor/codemirror.min.css"><link rel="stylesheet" href="vendor/material-darker.min.css">
+<style>
+:root{--bg:#ecebe4;--ink:#1a1a18;--mute:#6a665c;--line:#cfcabd;--card:#fbfaf6;--cyan:#0a7f8c;--green:#2b8a3e;--orange:#c7640b;--red:#b8325a}
+*{box-sizing:border-box;margin:0;padding:0;font-family:"Noto Sans TC","PingFang TC","Microsoft JhengHei",system-ui,sans-serif}
+body{background:var(--bg);color:var(--ink);padding:14px}
+header{display:flex;justify-content:space-between;align-items:baseline;border-bottom:3px solid var(--ink);padding-bottom:6px;margin-bottom:12px;flex-wrap:wrap;gap:8px}
+h1{font-size:1.25rem;letter-spacing:.06em}header a{color:var(--cyan);margin-right:14px;font-size:.9rem}
+main{display:grid;grid-template-columns:minmax(420px,1fr) minmax(360px,520px);gap:14px;align-items:start}
+@media(max-width:980px){main{grid-template-columns:1fr}}
+.card{background:var(--card);border:2px solid var(--ink);padding:12px;margin-bottom:12px}
+h2{font-size:.85rem;color:var(--mute);font-weight:500;letter-spacing:.1em;margin:0 0 8px}
+.row{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin:6px 0}
+select,button{font-size:.95rem;padding:8px 12px;border:2px solid var(--ink);background:#fff;cursor:pointer}
+button.pri{background:var(--ink);color:#fff}button:disabled{opacity:.45;cursor:default}
+.CodeMirror{height:560px;border:2px solid var(--ink);font:13px/1.5 ui-monospace,Menlo,monospace}
+pre.log{background:#14161a;color:#cfe3d4;font:12px/1.5 ui-monospace,Menlo,monospace;padding:10px;height:200px;overflow:auto;white-space:pre-wrap}
+.step{display:flex;gap:10px;align-items:flex-start;padding:8px 0;border-bottom:1px dashed var(--line)}
+.step b.n{flex:none;width:28px;height:28px;border-radius:50%;background:var(--ink);color:#fff;display:flex;align-items:center;justify-content:center;font-size:.9rem}
+.step .s{flex:1;font-size:.9rem;line-height:1.6}.step .s small{color:var(--mute);display:block}
+.ok{color:var(--green)}.bad{color:var(--red)}.warn{color:var(--orange)}
+#bar{height:10px;background:#ddd;border:1px solid var(--ink);margin-top:6px}#bar i{display:block;height:100%;width:0;background:var(--cyan)}
+.drv{background:#fff6e5;border:1.5px solid var(--orange);padding:10px;font-size:.88rem;line-height:1.7;margin-top:8px;display:none}
+.drv code{background:#eee;padding:0 4px}
+iframe{width:100%;height:420px;border:1px solid var(--line);background:#fff}
+.banner{background:#fff6e5;border:1.5px solid var(--orange);padding:10px;font-size:.9rem;line-height:1.6;margin-bottom:12px;display:none}
+</style></head>
+<body>
+<header><h1>寫程式／燒錄</h1><div><a href="index.html">模擬器</a><a href="extensions.html">延伸專案</a><span id="env" style="color:var(--mute);font-size:.85rem">連線中…</span></div></header>
+<div class="banner" id="noserver">這裡是靜態網站，沒有編譯伺服器：可以直接<b>燒錄預編譯的正式韌體</b>（步驟 ③④），但要自己改程式、模擬、重新編譯，請在老師的電腦執行 <code>make ide</code>，再開 <code>http://localhost:8787/ide.html</code>。</div>
+<main>
+ <section>
+  <div class="card">
+   <div class="row"><label>檔案 <select id="file"></select></label><button id="save">存檔</button><button id="reset">還原成磁碟版本</button><span id="savemsg" style="color:var(--mute);font-size:.85rem"></span></div>
+   <textarea id="code"></textarea>
+   <p style="color:var(--mute);font-size:.82rem;margin-top:6px">卡帶只能用 <code>hal.h</code> 的畫圖函式與 <code>GameCtx</code> 的資料（加速度、傾斜、步數、左右鍵）；可畫區 y 22～118，螢幕 240×135。改完按「存檔」→「模擬」看效果，再「燒錄」到板子。</p>
+  </div>
+  <div class="card"><h2>編譯／燒錄紀錄</h2><pre class="log" id="log"></pre></div>
+ </section>
+ <section>
+  <div class="card">
+   <div class="step"><b class="n">1</b><div class="s"><b>模擬</b>：存檔後重編模擬器（em++，約 20 秒），右邊的模擬器會自己重新載入。<small>延伸專案的 .ino 直接用 Arduino 函式庫，沒有模擬器版本，只能燒真機。</small>
+    <div class="row"><button id="sim" class="pri">存檔並模擬</button><span id="simmsg" style="font-size:.85rem"></span></div></div></div>
+   <div class="step"><b class="n">2</b><div class="s"><b>編譯真機韌體</b>：arduino-cli（第一次約 2 分鐘，之後約 40 秒）。<small>用到的中文字會自動描成點陣字型，所以可以放心用中文。</small>
+    <div class="row"><button id="build" class="pri">存檔並編譯</button><span id="buildmsg" style="font-size:.85rem"></span></div></div></div>
+   <div class="step"><b class="n">3</b><div class="s"><b>接上裝置</b>：用 USB 線接 T-Display，按「連接」在跳出的清單選它。<small>只有 Chrome／Edge 支援 Web Serial；Safari、Firefox 不行。</small>
+    <div class="row"><button id="connect" class="pri">連接</button><span id="portmsg" style="font-size:.85rem"></span></div>
+    <div class="drv" id="drv"></div></div></div>
+   <div class="step"><b class="n">4</b><div class="s"><b>燒錄</b>：把編好的韌體寫進板子（約 1 分鐘，1.2 MB @ 230400）。寫完自動重開機並開始監看序列埠。<small>設定、步數都在 NVS 分區，燒錄不會清掉。</small>
+    <div class="row"><button id="flash" class="pri" disabled>燒錄</button><button id="flashpre" disabled>燒錄預編譯的正式韌體</button><span id="flashmsg" style="font-size:.85rem"></span></div><div id="bar"><i></i></div></div></div>
+   <div class="step" style="border-bottom:0"><b class="n">5</b><div class="s"><b>序列埠監看</b>：板子印的訊息會出現在下面；看到 <code>TIME?</code>（接上電腦自動對時）會用這台電腦的時間回覆。
+    <div class="row"><button id="monitor" disabled>開始監看</button><button id="stopmon" disabled>停止</button><input id="cmd" placeholder="輸入指令：status／time／off" style="flex:1;min-width:160px;padding:8px;border:2px solid var(--ink)"><button id="send" disabled>送出</button></div>
+    <pre class="log" id="mon" style="height:150px"></pre></div></div>
+  </div>
+  <div class="card" id="simcard"><h2>模擬器（卡帶在主選單 → 遊戲 裡）</h2><iframe id="simframe" src="index.html"></iframe></div>
+ </section>
+</main>
+<script src="vendor/codemirror.min.js"></script><script src="vendor/clike.min.js"></script><script src="vendor/matchbrackets.min.js"></script>
+<script type="module" src="ide.js"></script>
+</body></html>

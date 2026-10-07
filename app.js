@@ -110,6 +110,8 @@ const Module = await createSim({
   sim: {
     now: () => simTime,
     beginFrame() {}, endFrame() {},
+    screenPower(on) { cv.style.opacity = on ? '' : '0.06'; cv.dataset.off = on ? '' : '1'; },
+    takeTap() { const t = window.__tap || 0; window.__tap = 0; return t; },
     rotate(deg, zoom) { cv.style.transform = deg ? `rotate(${deg}deg) scale(${zoom})` : ''; cv.dataset.rot = Math.round(deg); },
     fill(c) { ctx.fillStyle = css565(c); ctx.fillRect(0, 0, 240, 135); },
     fillRect(x, y, w, h, c) { ctx.fillStyle = css565(c); ctx.fillRect(x, y, w, h); },

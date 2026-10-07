@@ -6,7 +6,7 @@ header{display:flex;justify-content:space-between;align-items:baseline;border-bo
 .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:14px}.card{background:var(--card);border:1px solid var(--line);padding:10px}
 video{width:100%;aspect-ratio:16/9;background:#000;display:block}h2{font-size:1rem;margin:8px 0 4px}.note{color:var(--mute);font-size:.85rem}</style></head><body>
 <header><h1>焊接教學短片</h1><a href="index.html">← 回模擬器</a></header>
-<div class="card" style="margin-bottom:14px"><video controls preload="metadata" poster="video/intro.jpg" src="video/intro.mp4"></video><h2>專案介紹影片（3 分 50 秒）</h2><p class="note">從備份、逆向到重製的完整歷程；旁白為老師本人聲音的 AI 合成（Qwen3-TTS，本機訓練、未上傳），屬經過合成的內容。</p></div>
+<div class="card" style="margin-bottom:14px"><video controls preload="metadata" poster="video/intro.jpg" src="video/intro.mp4"></video><h2>專案介紹影片（7 分 10 秒）</h2><p class="note">從備份、逆向到重製的完整歷程，每個專有名詞都用白話解釋；旁白為老師本人聲音的 AI 合成（Qwen3-TTS，本機訓練、未上傳），屬經過合成的內容。</p></div>
 <p class="note">七段短片依講義 2.6 的順序：剝線 → 沾錫 → 焊蜂鳴器 → 焊 ADXL345 → 焊主板 → 蜂鳴器線到主板 → 通電測試。每段 25 秒內，無旁白，字幕說明步驟。</p>
 <div class="grid" id="g"><p class="note">短片整理中…</p></div>
 <script>fetch('clips/index.json').then(r=>r.json()).then(list=>{const g=document.getElementById('g');if(!list.length){g.innerHTML='<p class="note">短片尚未上傳（剪輯在 Mac Studio 進行中）。</p>';return}

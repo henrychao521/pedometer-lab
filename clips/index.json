@@ -1,1 +1,58 @@
-[]
+[
+ {
+  "id": "01_strip",
+  "title": "① 剝線：排線剝 3 mm",
+  "file": "01_strip.mp4",
+  "poster": "01_strip.jpg",
+  "duration": 28.0,
+  "size_kb": 5811
+ },
+ {
+  "id": "02_tin",
+  "title": "② 線頭沾錫",
+  "file": "02_tin.mp4",
+  "poster": "02_tin.jpg",
+  "duration": 28.0,
+  "size_kb": 5882
+ },
+ {
+  "id": "03_buzzer",
+  "title": "③ 焊蜂鳴器（兩條線）",
+  "file": "03_buzzer.mp4",
+  "poster": "03_buzzer.jpg",
+  "duration": 28.0,
+  "size_kb": 6865
+ },
+ {
+  "id": "04_adxl",
+  "title": "④ 焊 ADXL345（四條線）",
+  "file": "04_adxl.mp4",
+  "poster": "04_adxl.jpg",
+  "duration": 28.0,
+  "size_kb": 7239
+ },
+ {
+  "id": "05_board",
+  "title": "⑤ 焊主板（3V、G、21、22）",
+  "file": "05_board.mp4",
+  "poster": "05_board.jpg",
+  "duration": 26.0,
+  "size_kb": 6409
+ },
+ {
+  "id": "06_buzzer_board",
+  "title": "⑥ 蜂鳴器線焊到主板（25、G）",
+  "file": "06_buzzer_board.mp4",
+  "poster": "06_buzzer_board.jpg",
+  "duration": 25.0,
+  "size_kb": 5558
+ },
+ {
+  "id": "07_power_on",
+  "title": "⑦ 通電測試",
+  "file": "07_power_on.mp4",
+  "poster": "07_power_on.jpg",
+  "duration": 25.0,
+  "size_kb": 7239
+ }
+]

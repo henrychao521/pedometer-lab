@@ -28,14 +28,14 @@ const releaseBothIfDue = () => { if (bothReleaseAt >= 0 && simTime >= bothReleas
 $('bs').onclick = () => pressBoth(150); $('bb').onclick = () => pressBoth(1000);
 document.addEventListener('keydown', e => {
   if (e.target.tagName === 'INPUT' || e.target.tagName === 'SELECT') return;
-  if (e.key === 'ArrowLeft') { btn[0] = true; $('bl').classList.add('down'); }
-  if (e.key === 'ArrowRight') { btn[1] = true; $('br').classList.add('down'); }
+  if (e.key === 'ArrowLeft' || e.key === 'ArrowUp') { e.preventDefault(); btn[0] = true; $('bl').classList.add('down'); }
+  if (e.key === 'ArrowRight' || e.key === 'ArrowDown') { e.preventDefault(); btn[1] = true; $('br').classList.add('down'); }
   if (e.key === ' ') { e.preventDefault(); pressBoth(150); }
   if (e.key === 'Enter') pressBoth(1000);
 });
 document.addEventListener('keyup', e => {
-  if (e.key === 'ArrowLeft') { btn[0] = false; $('bl').classList.remove('down'); }
-  if (e.key === 'ArrowRight') { btn[1] = false; $('br').classList.remove('down'); }
+  if (e.key === 'ArrowLeft' || e.key === 'ArrowUp') { e.preventDefault(); btn[0] = false; $('bl').classList.remove('down'); }
+  if (e.key === 'ArrowRight' || e.key === 'ArrowDown') { e.preventDefault(); btn[1] = false; $('br').classList.remove('down'); }
 });
 
 // ---------- 感測器模型 ----------

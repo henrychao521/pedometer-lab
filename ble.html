@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html lang="zh-Hant-TW"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>藍牙連線 — 計步器</title>
+<style>
+:root{--bg:#ecebe4;--ink:#1a1a18;--mute:#6a665c;--line:#cfcabd;--card:#fbfaf6;--cyan:#0a7f8c;--green:#2b8a3e;--red:#b8325a;--blue:#2f5fd0}
+*{box-sizing:border-box;margin:0;padding:0;font-family:"Noto Sans TC","PingFang TC","Microsoft JhengHei",system-ui,sans-serif}
+body{background:var(--bg);color:var(--ink);padding:16px;max-width:760px;margin:0 auto;line-height:1.6}
+header{display:flex;justify-content:space-between;align-items:baseline;border-bottom:3px solid var(--ink);padding-bottom:6px;margin-bottom:14px;flex-wrap:wrap;gap:8px}
+h1{font-size:1.25rem}header a{color:var(--cyan);margin-left:12px;font-size:.9rem}
+.card{background:var(--card);border:2px solid var(--ink);padding:14px;margin-bottom:12px}
+h2{font-size:.85rem;color:var(--mute);font-weight:500;letter-spacing:.1em;margin-bottom:8px}
+button{font-size:1rem;padding:10px 16px;border:2px solid var(--ink);background:#fff;cursor:pointer}button.pri{background:var(--ink);color:#fff}button:disabled{opacity:.45;cursor:default}
+.big{font-size:3rem;font-weight:700;font-variant-numeric:tabular-nums;line-height:1.1}
+.row{display:flex;gap:16px;flex-wrap:wrap;align-items:baseline}.kv{min-width:140px}.kv b{display:block;font-size:1.4rem}
+.chart{display:flex;align-items:flex-end;gap:3px;height:120px;border-bottom:1px solid var(--line);margin-top:6px}
+.chart div{flex:1;background:var(--blue);min-height:1px;position:relative}.chart span{position:absolute;bottom:-20px;left:50%;transform:translateX(-50%);font-size:.7rem;color:var(--mute)}
+pre{background:#14161a;color:#cfe3d4;font:12px/1.5 ui-monospace,Menlo,monospace;padding:10px;height:140px;overflow:auto;white-space:pre-wrap}
+.note{color:var(--mute);font-size:.85rem}.warn{background:#fff6e5;border:1.5px solid #c7640b;padding:10px;font-size:.9rem;margin-bottom:12px;display:none}
+</style></head>
+<body>
+<header><h1>藍牙連線</h1><div><a href="index.html">模擬器</a><a href="ide.html">寫程式／燒錄</a></div></header>
+<div class="warn" id="nobt">這個瀏覽器沒有 Web Bluetooth。請用電腦或 Android 的 <b>Chrome／Edge</b>；iPhone 的 Safari 不支援，可改用 Bluefy 這類支援 Web Bluetooth 的瀏覽器。</div>
+<div class="card">
+ <p class="note">裝置先到「設定 → 藍牙」打開（會重新開機一次），狀態列出現藍色藍牙圖示後，按下面的「連線」，在清單裡選「計步器-GOTT」。藍牙和 Wi-Fi 不能同時開。</p>
+ <div class="row" style="margin-top:10px"><button class="pri" id="conn">連線</button><button id="sync" disabled>用這台電腦的時間對時</button><button id="disc" disabled>中斷</button><span id="st" class="note">尚未連線</span></div>
+</div>
+<div class="card"><h2>今天步數（裝置有變化會主動通知）</h2><div class="big" id="steps">—</div>
+ <div class="row" style="margin-top:8px"><div class="kv">電量<b id="batt">—</b></div><div class="kv">裝置資訊<b id="info" style="font-size:1rem">—</b></div></div></div>
+<div class="card"><h2>今天每小時步數</h2><div class="chart" id="hours"></div><p class="note" style="margin-top:26px">每 30 秒自動更新。</p></div>
+<div class="card"><h2>紀錄</h2><pre id="log"></pre></div>
+<script>
+const SVC = '6e3a0001-5b2f-4c8e-9a51-7d3f2b1c0a00', U = n => `6e3a000${n}-5b2f-4c8e-9a51-7d3f2b1c0a00`;
+const $ = id => document.getElementById(id), L = s => { $('log').textContent += new Date().toLocaleTimeString() + '  ' + s + '\n'; $('log').scrollTop = 1e9; };
+let dev = null, ch = {}, timer = null;
+if (!navigator.bluetooth) { $('nobt').style.display = 'block'; $('conn').disabled = true; }
+async function readHours() {
+  const v = await ch.hours.readValue(); const h = []; for (let i = 0; i < 24; i++) h.push(v.getUint16(i * 2, true));
+  const mx = Math.max(1, ...h); $('hours').innerHTML = h.map((x, i) => `<div style="height:${Math.max(1, x / mx * 100)}%" title="${i} 點：${x} 步"><span>${i % 6 ? '' : i}</span></div>`).join('');
+}
+async function readInfo() { $('info').textContent = new TextDecoder().decode(await ch.info.readValue()); }
+$('conn').onclick = async () => {
+  try {
+    $('st').textContent = '選擇裝置…';
+    dev = await navigator.bluetooth.requestDevice({ filters: [{ services: [SVC] }, { namePrefix: '計步器' }], optionalServices: [SVC, 'battery_service'] });
+    dev.addEventListener('gattserverdisconnected', () => { $('st').textContent = '已中斷'; L('已中斷'); $('sync').disabled = $('disc').disabled = true; clearInterval(timer); });
+    $('st').textContent = '連線中…'; const g = await dev.gatt.connect(); L('已連線：' + dev.name);
+    const ps = await g.getPrimaryService(SVC);
+    for (const [k, n] of [['steps', 2], ['hours', 3], ['time', 4], ['info', 5]]) ch[k] = await ps.getCharacteristic(U(n));
+    const bs = await g.getPrimaryService('battery_service'); ch.batt = await bs.getCharacteristic('battery_level');
+    const showSteps = v => { $('steps').textContent = v.getUint32(0, true).toLocaleString(); };
+    showSteps(await ch.steps.readValue());
+    ch.steps.addEventListener('characteristicvaluechanged', e => { showSteps(e.target.value); L('步數通知：' + e.target.value.getUint32(0, true)); });
+    await ch.steps.startNotifications();
+    const showBatt = v => { $('batt').textContent = v.getUint8(0) + '%'; };
+    showBatt(await ch.batt.readValue());
+    try { ch.batt.addEventListener('characteristicvaluechanged', e => showBatt(e.target.value)); await ch.batt.startNotifications(); } catch {}
+    await readInfo(); await readHours(); timer = setInterval(() => { readHours().catch(() => {}); readInfo().catch(() => {}); }, 30000);
+    $('st').textContent = '已連線'; $('sync').disabled = $('disc').disabled = false;
+  } catch (e) { $('st').textContent = '連線失敗'; L('連線失敗：' + e.message); }
+};
+$('sync').onclick = async () => {
+  const b = new DataView(new ArrayBuffer(6)); b.setInt32(0, Math.floor(Date.now() / 1000), true); b.setInt16(4, -new Date().getTimezoneOffset(), true);
+  try { await ch.time.writeValue(b.buffer); L('已對時：' + new Date().toLocaleString()); setTimeout(readInfo, 800); } catch (e) { L('對時失敗：' + e.message); }
+};
+$('disc').onclick = () => { if (dev && dev.gatt.connected) dev.gatt.disconnect(); };
+</script>
+</body></html>

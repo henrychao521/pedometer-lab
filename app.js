@@ -57,7 +57,9 @@ $('bat').oninput = e => $('vbat').textContent = (+e.target.value).toFixed(2);
 
 const accelRead = () => {
   const p = pitch * Math.PI / 180, r = roll * Math.PI / 180;
-  const g = [-Math.sin(p), Math.cos(p) * Math.sin(r), Math.cos(p) * Math.cos(r)];
+  let g = [-Math.sin(p), Math.cos(p) * Math.sin(r), Math.cos(p) * Math.cos(r)];
+  const pose = $('pose') ? $('pose').value : 'flat';                         // 拿法：直立＝重力沿 +y；倒立＝沿 −y（模擬器的「校正方向」預設就是 +y）
+  if (pose === 'up') g = [-Math.sin(p) * 0.2, 1, 0.1]; else if (pose === 'down') g = [-Math.sin(p) * 0.2, -1, 0.1];
   let f = 1 + (Math.random() - 0.5) * 0.03;
   if (walking) f += +$('amp').value * Math.sin(2 * Math.PI * (+$('cad').value / 60) * simTime / 1000);
   if (simTime < shakeUntil) f += 0.7 * Math.sin(Math.PI * (shakeUntil - simTime) / 150);
@@ -108,6 +110,7 @@ const Module = await createSim({
   sim: {
     now: () => simTime,
     beginFrame() {}, endFrame() {},
+    rotate(deg, zoom) { cv.style.transform = deg ? `rotate(${deg}deg) scale(${zoom})` : ''; cv.dataset.rot = Math.round(deg); },
     fill(c) { ctx.fillStyle = css565(c); ctx.fillRect(0, 0, 240, 135); },
     fillRect(x, y, w, h, c) { ctx.fillStyle = css565(c); ctx.fillRect(x, y, w, h); },
     drawRect(x, y, w, h, c) { ctx.strokeStyle = css565(c); ctx.lineWidth = 1; ctx.strokeRect(x + .5, y + .5, w - 1, h - 1); },

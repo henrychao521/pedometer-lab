@@ -73,6 +73,9 @@ iframe{width:100%;height:560px;border:1px solid var(--line);background:#fff}
      <label>振幅 <span id="vamp">0.25</span> g<input type="range" id="amp" min="0.05" max="0.6" step="0.01" value="0.25"></label></div>
     <canvas id="wave"></canvas>
     <div class="row"><div class="kv" style="flex:1"><span>加速度 (g)</span><span id="vacc">—</span></div><div class="kv" style="flex:1"><span>步數</span><span id="vsteps">—</span></div></div>
+    <h2>心率感測器（MAX30102）</h2>
+    <div class="row"><label><input type="checkbox" id="hrfinger"> 手指放在感測器上</label>
+     <label>心跳 <span id="vhr">72</span> 下/分<input type="range" id="hrbpm" min="45" max="160" value="72"></label></div>
     <h2>電池與蜂鳴器</h2>
     <div class="row"><label>電池 <span id="vbat">3.90</span> V<input type="range" id="bat" min="3.2" max="4.25" step="0.01" value="3.9"></label>
      <label><input type="checkbox" id="nobat"> 沒接電池</label><label><input type="checkbox" id="usb"> 接上 USB（電腦）</label><span>蜂鳴器 <i class="buzz" id="buzz"></i> <label><input type="checkbox" id="mute"> 靜音</label></span></div>

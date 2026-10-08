@@ -109,6 +109,7 @@ const origLog = log;
 const logHook = s => { if (s.startsWith('TIME?') && $('usb').checked) setTimeout(() => { const ep = Math.floor(Date.now() / 1000), tz = -new Date().getTimezoneOffset();
   api('POST', '/api/time', `epoch=${ep}&tz_min=${tz}`); origLog(`[電腦] 收到 TIME?，回覆 time ${ep} ${tz}`); }, 300); };
 $('clearlog').onclick = () => serial.textContent = '';
+$('hrbpm').oninput = () => $('vhr').textContent = $('hrbpm').value;
 
 // ---------- 載入 WebAssembly ----------
 const Module = await createSim({
@@ -127,6 +128,7 @@ const Module = await createSim({
     button: id => btn[id],
     accelBegin: () => !window.WIRING || WIRING.state.accelOk,
     accelRead,
+    hrFinger: () => $('hrfinger').checked ? +$('hrbpm').value : 0,   // 心率模擬：0＝沒放手指
     tone, toneVolume(l) { toneLevel = l; },
     kvGet: k => localStorage.getItem(KV + k),
     kvSet(k, hex) { localStorage.setItem(KV + k, hex); renderNvs(); },

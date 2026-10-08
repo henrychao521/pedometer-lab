@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="zh-Hant-TW"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>計步器韌體燒錄</title>
+<style>
+:root{--ink:#1d2330;--card:#fffdf7;--bg:#f3efe4;--cyan:#0b7f95;--mute:#5d6577;--ok:#1f7a3a;--bad:#b3261e;--warn:#9a5b00}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--ink:#e8e6df;--card:#1c2029;--bg:#12151c;--cyan:#5fd0e4;--mute:#9aa3b5;--ok:#6fd38f;--bad:#ff8a80;--warn:#ffc266}}
+body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.7 "PingFang TC","Noto Sans TC","Microsoft JhengHei",sans-serif}
+main{max-width:760px;margin:0 auto;padding:20px 16px 48px}
+h1{font-size:1.5rem;margin:.2em 0 .1em}
+.sub{color:var(--mute);margin:0 0 18px}
+.card{background:var(--card);border:2px solid var(--ink);padding:14px 16px;margin:14px 0}
+.card h2{font-size:1.05rem;margin:0 0 6px}
+ol{margin:6px 0 0;padding-left:1.4em} li{margin:4px 0}
+button{font:inherit;font-weight:700;padding:10px 18px;border:2px solid var(--ink);background:var(--cyan);color:#fff;cursor:pointer}
+button:disabled{opacity:.45;cursor:not-allowed}
+label{display:inline-flex;gap:6px;align-items:center;margin-left:12px;font-size:.92rem}
+#bar{height:12px;border:2px solid var(--ink);margin:12px 0 6px}#bar i{display:block;height:100%;width:0;background:var(--cyan)}
+#msg{font-weight:700}.ok{color:var(--ok)}.bad{color:var(--bad)}.warn{color:var(--warn)}
+pre{background:#0d1117;color:#c9d1d9;padding:10px;max-height:220px;overflow:auto;font-size:.8rem;white-space:pre-wrap}
+table{border-collapse:collapse;width:100%;font-size:.92rem}td,th{border:1px solid var(--mute);padding:6px 8px;text-align:left;vertical-align:top}
+small{color:var(--mute)}a{color:var(--cyan)}
+</style></head><body><main>
+<h1>計步器韌體燒錄</h1>
+<p class="sub">給老師用：不用安裝任何軟體，用 Chrome 或 Edge 就能把正式韌體燒進板子。會自動判斷是 <b>T-Display</b> 還是 <b>T-Display S3</b>。</p>
+
+<div class="card"><h2>步驟</h2>
+<ol>
+<li>用 <b>Chrome 或 Edge</b>（電腦版）開這一頁。Safari、Firefox、手機都不行（沒有 Web Serial）。</li>
+<li>用 <b>USB 資料線</b>（不是純充電線）把板子接上電腦。</li>
+<li>按下面的「連接並燒錄」，在跳出的清單選板子（T-Display 會顯示 <code>USB Single Serial</code> 或 <code>CH9102</code>；T-Display S3 會顯示 <code>USB JTAG/serial debug unit</code>），按「連線」。</li>
+<li>等進度條跑完（T-Display 約 1～2 分鐘、S3 約 30 秒），看到「燒錄完成」板子會自動重開機。</li>
+</ol>
+<p style="margin:12px 0 0"><button id="go">連接並燒錄</button><label><input type="checkbox" id="erase"> 先清除全部資料（第一次燒、或要恢復預設值時才勾）</label></p>
+<div id="bar"><i></i></div><div id="msg"></div>
+<pre id="log"></pre>
+</div>
+
+<div class="card"><h2>清單裡找不到板子？</h2>
+<table>
+<tr><th style="width:24%">板子</th><th>怎麼處理</th></tr>
+<tr><td>T-Display（ESP32，USB 晶片 CH9102）</td><td><b>Windows</b>：先到 WCH 官網安裝 <a href="https://www.wch-ic.com/downloads/CH343SER_EXE.html" target="_blank" rel="noopener">CH343SER 驅動</a>（含 CH9102），重新插拔。<br><b>macOS</b>：多半免裝；若沒出現，安裝 <a href="https://www.wch-ic.com/downloads/CH34XSER_MAC_ZIP.html" target="_blank" rel="noopener">CH34XSER_MAC</a> 並在「系統設定 → 隱私權與安全性」允許。</td></tr>
+<tr><td>T-Display S3（ESP32-S3，晶片內建 USB）</td><td>不用裝驅動。若清單沒有或燒到一半斷線：<b>按住 BOOT 鍵（USB 左邊那顆），再按一下側邊的 RST 小按鍵，放開 BOOT</b>，板子進入燒錄模式後再按一次「連接並燒錄」。燒完按一下 RST 重開機。</td></tr>
+<tr><td>兩種都適用</td><td>換一條確定能傳資料的線；關掉 Arduino IDE 的序列埠監看視窗（它會占住連接埠）；USB 集線器有問題就改插電腦本體。</td></tr>
+</table></div>
+
+<div class="card"><h2>燒錄後</h2>
+<p>步數、設定存在板子的設定區，平常更新韌體<b>不會清掉</b>（除非勾了「先清除全部資料」）。接上電腦時板子會向電腦要時間；也可以到 <a href="index.html">模擬器頁</a> 先熟悉操作。要改程式請用講義附錄的 Arduino IDE 步驟。</p>
+<p id="ver"><small>正式韌體版本載入中…</small></p></div>
+</main>
+<script type="module">
+import { ESPLoader, Transport } from './vendor/esptool-js.bundle.js';
+const $ = id => document.getElementById(id);
+const L = s => { const p = $('log'); p.textContent += s + '\n'; p.scrollTop = p.scrollHeight; };
+const MANI = { classic: 'firmware/', s3: 'firmware_s3/' };
+const manifests = {};
+for (const [k, dir] of Object.entries(MANI)) {
+  try { const r = await fetch(dir + 'manifest.json', { cache: 'no-store' }); if (r.ok) manifests[k] = await r.json(); } catch {}
+}
+$('ver').innerHTML = '<small>' + Object.entries(manifests).map(([k, m]) => `${k === 's3' ? 'T-Display S3' : 'T-Display'}：v${m.version || '?'}（${m.built}）`).join('　') + '</small>';
+const toBinStr = u8 => { let s = ''; for (let i = 0; i < u8.length; i += 0x8000) s += String.fromCharCode.apply(null, u8.subarray(i, i + 0x8000)); return s; };
+const setMsg = (t, c = '') => { $('msg').textContent = t; $('msg').className = c; };
+$('go').onclick = async () => {
+  if (!('serial' in navigator)) { setMsg('這個瀏覽器不支援 Web Serial，請改用電腦版 Chrome 或 Edge。', 'bad'); return; }
+  let port;
+  try { port = await navigator.serial.requestPort({ filters: [{ usbVendorId: 0x1a86 }, { usbVendorId: 0x10c4 }, { usbVendorId: 0x303a }] }); }
+  catch { setMsg('沒有選到板子：看下面「清單裡找不到板子？」', 'warn'); return; }
+  $('go').disabled = true; $('bar').firstElementChild.style.width = '0'; $('log').textContent = '';
+  const transport = new Transport(port, true);
+  try {
+    const term = { clean() {}, writeLine: s => L(s), write: s => { if (s.trim()) L(s.trim()); } };
+    const loader = new ESPLoader({ transport, baudrate: 230400, romBaudrate: 115200, terminal: term });
+    setMsg('連線中（讓板子進入燒錄模式）…');
+    await loader.main();
+    const chip = loader.chip.CHIP_NAME || '';
+    const kind = /S3/i.test(chip) ? 's3' : /ESP32$/i.test(chip.trim()) ? 'classic' : null;
+    if (!kind || !manifests[kind]) throw new Error(`偵測到 ${chip}，這不是 T-Display／T-Display S3，或該板子的韌體沒有載入`);
+    const m = manifests[kind];
+    setMsg(`偵測到 ${chip}（${kind === 's3' ? 'T-Display S3' : 'T-Display'}），下載韌體…`);
+    const files = [];
+    for (const im of m.images) { const b = new Uint8Array(await (await fetch(MANI[kind] + im.name, { cache: 'no-store' })).arrayBuffer()); files.push({ data: toBinStr(b), address: im.offset }); L(`${im.name}：${b.length} bytes → 0x${im.offset.toString(16)}`); }
+    setMsg($('erase').checked ? '清除全部資料並燒錄中…（清除要多等一下）' : '燒錄中…');
+    await loader.writeFlash({ fileArray: files, flashSize: 'keep', flashMode: 'keep', flashFreq: 'keep', eraseAll: $('erase').checked, compress: true,
+      reportProgress: (i, written, total) => { $('bar').firstElementChild.style.width = Math.round((i + written / total) / files.length * 100) + '%'; } });
+    $('bar').firstElementChild.style.width = '100%';
+    try { await loader.hardReset(); } catch {}
+    setMsg(`燒錄完成（v${m.version || '?'}），板子已重開機。` + (kind === 's3' ? '若畫面沒亮，按一下 RST。' : ''), 'ok'); L('燒錄完成');
+  } catch (e) {
+    setMsg('燒錄失敗：' + e.message, 'bad'); L('燒錄失敗：' + e.message);
+    L('常見原因：純充電線／驅動沒裝／Arduino IDE 序列埠監看占住連接埠／S3 要先按住 BOOT 再按 RST 進燒錄模式。');
+  }
+  try { await transport.disconnect(); } catch {}
+  $('go').disabled = false;
+};
+</script></body></html>

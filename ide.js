@@ -82,13 +82,19 @@ async function flashImages(imgs) {
   await stopMonitor();
   $('flash').disabled = $('flashpre').disabled = true; $('flashmsg').className = ''; $('bar').firstElementChild.style.width = '0';
   const files = [];
-  for (const im of imgs) { const b = new Uint8Array(await (await fetch(im.url)).arrayBuffer()); files.push({ data: toBinStr(b), address: im.offset }); L(`讀取 ${im.name}：${b.length} bytes → 0x${im.offset.toString(16)}`); }
+  const load = async list => { for (const im of list) { const b = new Uint8Array(await (await fetch(im.url)).arrayBuffer()); files.push({ data: toBinStr(b), address: im.offset }); L(`讀取 ${im.name}：${b.length} bytes → 0x${im.offset.toString(16)}`); } };
+  if (imgs !== 'auto') await load(imgs);
   const transport = new Transport(port, true);
   try {
     const term = { clean() {}, writeLine: s => L(s), write: s => { if (s.trim()) L(s.trim()); } };
     const loader = new ESPLoader({ transport, baudrate: 230400, romBaudrate: 115200, terminal: term });
     $('flashmsg').textContent = '連線中（進入燒錄模式）…';
     await loader.main();
+    if (imgs === 'auto') {                                   // 正式韌體：依晶片選 T-Display（ESP32）或 T-Display S3（ESP32-S3），不會燒錯板子
+      const chip = loader.chip.CHIP_NAME || '', dir = /S3/i.test(chip) ? 'firmware_s3/' : 'firmware/';
+      const m = await (await fetch(dir + 'manifest.json', { cache: 'no-store' })).json(); L(`偵測到 ${chip} → ${m.board} v${m.version || '?'}`);
+      await load(m.images.map(i => ({ ...i, url: dir + i.name })));
+    }
     $('flashmsg').textContent = '燒錄中…';
     await loader.writeFlash({ fileArray: files, flashSize: 'keep', flashMode: 'keep', flashFreq: 'keep', eraseAll: false, compress: true,
       reportProgress: (i, written, total) => { $('bar').firstElementChild.style.width = Math.round((i + written / total) / files.length * 100) + '%'; } });
@@ -123,7 +129,7 @@ $('ota').onclick = async () => {
 // 預編譯的正式韌體（網站 firmware/manifest.json；本機伺服器也可能有）
 let preManifest = null;
 fetch('firmware/manifest.json').then(r => r.ok ? r.json() : null).then(m => { preManifest = m; if (m) { $('flashpre').title = `正式韌體 ${m.built}`; $('flashpre').disabled = !port; } }).catch(() => {});
-$('flashpre').onclick = () => flashImages(preManifest.images.map(i => ({ ...i, url: 'firmware/' + i.name })));
+$('flashpre').onclick = () => flashImages('auto');   // 自動判斷板子
 
 // ---------------- 序列埠監看：看到 TIME? 就回時間（接上電腦自動對時）
 let writer = null;

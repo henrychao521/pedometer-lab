@@ -1,12 +1,12 @@
 {
  "built": "2026-10-09 03:24",
  "version": "1.13.0",
- "board": "LilyGO T-Display (ESP32, CH9102)",
+ "board": "LilyGO T-Display S3 (ESP32-S3, native USB)",
  "images": [
   {
-   "offset": 4096,
+   "offset": 0,
    "name": "bootloader.bin",
-   "size": 25024
+   "size": 19984
   },
   {
    "offset": 32768,
@@ -21,7 +21,7 @@
   {
    "offset": 65536,
    "name": "app.bin",
-   "size": 1636368
+   "size": 1541120
   }
  ]
 }

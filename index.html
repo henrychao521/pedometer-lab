@@ -41,7 +41,7 @@ iframe{width:100%;height:560px;border:1px solid var(--line);background:#fff}
 .res{font-size:.9rem;line-height:1.7;margin-top:8px}.res .ok{color:var(--green)}.res .bad{color:var(--red)}.res .warn{color:var(--orange)}
 .note{font-size:.82rem;color:var(--mute);line-height:1.6;margin-top:6px}
 </style></head><body>
-<header><h1>計步器模擬器</h1><div><a href="extensions.html" style="color:var(--cyan);margin-right:14px;font-size:.9rem">延伸專案</a><a href="講義.pdf" style="color:var(--cyan);margin-right:14px;font-size:.9rem">講義 PDF</a><a href="clips.html" style="color:var(--cyan);margin-right:14px;font-size:.9rem">介紹影片與短片</a><a href="ide.html" style="color:var(--cyan);margin-right:14px;font-size:.9rem">寫程式／燒錄 →</a><a href="ble.html" style="color:var(--cyan);margin-right:14px;font-size:.9rem">藍牙連線 →</a><span id="ver">載入中…</span></div></header>
+<header><h1>計步器模擬器</h1><span id="boardsel" style="font-size:.85rem;margin-left:12px"></span><div><a href="extensions.html" style="color:var(--cyan);margin-right:14px;font-size:.9rem">延伸專案</a><a href="講義.pdf" style="color:var(--cyan);margin-right:14px;font-size:.9rem">講義 PDF</a><a href="clips.html" style="color:var(--cyan);margin-right:14px;font-size:.9rem">介紹影片與短片</a><a href="ide.html" style="color:var(--cyan);margin-right:14px;font-size:.9rem">寫程式／燒錄 →</a><a href="ble.html" style="color:var(--cyan);margin-right:14px;font-size:.9rem">藍牙連線 →</a><span id="ver">載入中…</span></div></header>
 <section id="intro" style="background:var(--card);border:2px solid var(--ink);padding:10px;margin-bottom:14px;max-width:760px"><video controls preload="metadata" poster="video/intro.jpg" src="video/intro.mp4" style="width:100%;aspect-ratio:16/9;background:#000;display:block"></video><p style="font-size:.85rem;color:var(--mute);margin-top:8px;line-height:1.6">專案介紹影片（13 分 23 秒）：一台壞掉的電腦，和一支重生的計步器——從備份、逆向到重製，每個專有名詞都用白話解釋，給國小到高中老師看；後半段是第二輪改良：省電、計步演算法、藍牙、瀏覽器燒錄、音樂。旁白為老師本人聲音的 AI 合成（Qwen3-TTS，本機訓練、未上傳），屬經過合成的內容。<a href="https://youtu.be/yQ-qkD6gDsc" target="_blank" rel="noopener" style="color:var(--cyan);margin-left:6px">在 YouTube 觀看（有章節）→</a></p></section>
 <main>
  <div>
@@ -91,7 +91,11 @@ iframe{width:100%;height:560px;border:1px solid var(--line);background:#fff}
   </div>
  </div>
 </main>
-<script src="sim.js"></script>
+<script>
+// 板子：?board=s3 載入 T-Display S3（320×170）版面的韌體，否則原本的 T-Display（240×135）
+window.SIM_BOARD = new URLSearchParams(location.search).get('board') === 's3' ? 's3' : 'classic';
+document.write('<script src="' + (SIM_BOARD === 's3' ? 'sim_s3.js' : 'sim.js') + '"><\/script>');
+</script>
 <script src="wiring.js"></script>
 <script src="app.js"></script>
 </body></html>

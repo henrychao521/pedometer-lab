@@ -3,7 +3,12 @@
 const $ = id => document.getElementById(id);
 
 // ---------- 畫面 ----------
-const cv = $('screen'), ctx = cv.getContext('2d'); ctx.scale(3, 3);
+const S3 = window.SIM_BOARD === 's3';
+const SW = S3 ? 320 : 240, SH = S3 ? 170 : 135;            // 螢幕像素（S3 有自己的一套版面）
+const cv = $('screen'); cv.width = SW * 3; cv.height = SH * 3; cv.style.aspectRatio = `${SW}/${SH}`;
+const ctx = cv.getContext('2d'); ctx.scale(3, 3);
+$('boardsel').innerHTML = S3 ? '<b>T-Display S3</b>｜<a href="?">T-Display</a>' : '<b>T-Display</b>｜<a href="?board=s3">T-Display S3</a>';
+if (S3) { $('bl').textContent = '上鍵（GPIO14）'; $('br').textContent = '下鍵（GPIO0）'; }
 const css565 = c => `rgb(${(c >> 11 & 31) * 255 / 31 | 0},${(c >> 5 & 63) * 255 / 63 | 0},${(c & 31) * 255 / 31 | 0})`;
 const FONT = { 12: '12px', 16: '16px', 24: 'bold 24px' };
 let backlight = 100;
@@ -113,7 +118,7 @@ const Module = await createSim({
     screenPower(on) { cv.style.opacity = on ? '' : '0.06'; cv.dataset.off = on ? '' : '1'; },
     takeTap() { const t = window.__tap || 0; window.__tap = 0; return t; },
     rotate(deg, zoom) { cv.style.transform = deg ? `rotate(${deg}deg) scale(${zoom})` : ''; cv.dataset.rot = Math.round(deg); },
-    fill(c) { ctx.fillStyle = css565(c); ctx.fillRect(0, 0, 240, 135); },
+    fill(c) { ctx.fillStyle = css565(c); ctx.fillRect(0, 0, SW, SH); },
     fillRect(x, y, w, h, c) { ctx.fillStyle = css565(c); ctx.fillRect(x, y, w, h); },
     drawRect(x, y, w, h, c) { ctx.strokeStyle = css565(c); ctx.lineWidth = 1; ctx.strokeRect(x + .5, y + .5, w - 1, h - 1); },
     textWidth(s, f) { ctx.font = `${FONT[f] || '16px'} "Noto Sans TC","PingFang TC","Microsoft JhengHei",sans-serif`; return Math.ceil(ctx.measureText(s).width); },

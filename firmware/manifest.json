@@ -1,5 +1,5 @@
 {
- "built": "2026-10-09 03:24",
+ "built": "2026-10-09 07:22",
  "version": "1.13.0",
  "board": "LilyGO T-Display (ESP32, CH9102)",
  "images": [
@@ -21,7 +21,7 @@
   {
    "offset": 65536,
    "name": "app.bin",
-   "size": 1636368
+   "size": 1636656
   }
  ]
 }

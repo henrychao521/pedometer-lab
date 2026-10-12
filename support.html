@@ -1,0 +1,21 @@
+<!doctype html><html lang="zh-Hant-TW"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>計步器 App 支援</title><style>:root{--bg:#fbfaf7;--fg:#1d1d1f;--mut:#5f6368;--line:#e3e0d8;--acc:#0a7d5a}
+@media (prefers-color-scheme:dark){:root{--bg:#141414;--fg:#ececec;--mut:#a0a0a0;--line:#2e2e2e;--acc:#4fd1a5}}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--fg);font:17px/1.75 -apple-system,"PingFang TC","Noto Sans TC",sans-serif}
+main{max-width:720px;margin:0 auto;padding:40px 16px 80px}h1{font-size:28px;margin:0 0 4px}h2{font-size:19px;margin:32px 0 6px;padding-top:16px;border-top:1px solid var(--line)}
+.meta{color:var(--mut);font-size:14px}a{color:var(--acc)}table{border-collapse:collapse;width:100%;font-size:15px}td,th{border-bottom:1px solid var(--line);padding:8px 6px;text-align:left;vertical-align:top}
+ul{padding-left:1.2em}</style></head><body><main><h1>「計步器」App 使用說明與支援</h1>
+<p class="meta">iPhone App「計步器」：生活科技課自製 ESP32 計步器的配套 App</p>
+<h2>需要什麼</h2>
+<ul><li>iPhone（iOS 17 以上）</li><li>燒好韌體 v1.16 以上、並在「設定 → 藍牙」打開藍牙的計步器（T-Display 或 T-Display-S3）<br>還沒有計步器的話，可以在 App 首頁按「用示範模式看看」。</li></ul>
+<h2>常見問題</h2>
+<table><tr><th>狀況</th><th>做法</th></tr>
+<tr><td>一直顯示「搜尋計步器中」</td><td>確認計步器的藍牙已開（設定 → 藍牙），而且 Wi-Fi 是關的（兩者不能同時開）。</td></tr>
+<tr><td>顯示「裝置韌體太舊」</td><td>用<a href="flash.html">網頁燒錄工具</a>把計步器更新到最新版。</td></tr>
+<tr><td>同步到「健康」失敗：還沒對時</td><td>先按「用 iPhone 的時間對時」，再同步。</td></tr>
+<tr><td>重複同步會不會讓步數變兩倍？</td><td>不會。同一天同一小時再同步，「健康」會用新值取代舊值。</td></tr>
+<tr><td>找不到附近的公園</td><td>確認已允許位置權限、手機有網路；附近 3 公里內沒有公園時會顯示找不到。</td></tr>
+</table>
+<h2>相關連結</h2>
+<ul><li><a href="index.html">計步器模擬器與教材</a></li><li><a href="privacy.html">隱私權政策</a></li><li>回報問題：<a href="https://github.com/henrychao521/pedometer-lab/issues">GitHub 問題回報</a></li></ul>
+</main></body></html>

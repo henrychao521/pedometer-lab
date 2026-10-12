@@ -1,11 +1,11 @@
 <!doctype html><html lang="zh-Hant-TW"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>計步器 App 隱私權政策</title><style>:root{--bg:#fbfaf7;--fg:#1d1d1f;--mut:#5f6368;--line:#e3e0d8;--acc:#0a7d5a}
+<title>喵步鬧鐘 隱私權政策</title><style>:root{--bg:#fbfaf7;--fg:#1d1d1f;--mut:#5f6368;--line:#e3e0d8;--acc:#0a7d5a}
 @media (prefers-color-scheme:dark){:root{--bg:#141414;--fg:#ececec;--mut:#a0a0a0;--line:#2e2e2e;--acc:#4fd1a5}}
 *{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--fg);font:17px/1.75 -apple-system,"PingFang TC","Noto Sans TC",sans-serif}
 main{max-width:720px;margin:0 auto;padding:40px 16px 80px}h1{font-size:28px;margin:0 0 4px}h2{font-size:19px;margin:32px 0 6px;padding-top:16px;border-top:1px solid var(--line)}
 .meta{color:var(--mut);font-size:14px}a{color:var(--acc)}table{border-collapse:collapse;width:100%;font-size:15px}td,th{border-bottom:1px solid var(--line);padding:8px 6px;text-align:left;vertical-align:top}
-ul{padding-left:1.2em}</style></head><body><main><h1>「計步器」App 隱私權政策</h1>
-<p class="meta">適用：iPhone App「計步器」（套件識別碼 tw.livingtech.pedometersync）　生效日期：2026 年 10 月 12 日　開發者：趙珩宇（個人）</p>
+ul{padding-left:1.2em}</style></head><body><main><h1>「喵步鬧鐘」App 隱私權政策</h1>
+<p class="meta">適用：iPhone App「喵步鬧鐘」（原名「計步器」）（套件識別碼 tw.livingtech.pedometersync）　生效日期：2026 年 10 月 12 日　開發者：趙珩宇（個人）</p>
 <p>「計步器」是生活科技課自製 ESP32 計步器的配套 App。<strong>本 App 沒有開發者自己的伺服器，不收集、不上傳、不販售任何個人資料，也沒有廣告與追蹤。</strong>以下逐項說明 App 會碰到哪些資料、資料去了哪裡。</p>
 <h2>1. 藍牙與計步器資料</h2>
 <p>App 透過藍牙連接你自己的計步器，讀取步數、每小時紀錄、電量與裝置設定，並可修改裝置設定、校正時間。這些資料只在 iPhone 與你的計步器之間傳送，不會送到其他地方。</p>
@@ -16,8 +16,14 @@ ul{padding-left:1.2em}</style></head><body><main><h1>「計步器」App 隱私�
 <li>示範模式的步數是模擬的，App 不會把它寫入「健康」。</li></ul>
 <h2>2-1. iPhone 的步數（動作與健身）</h2>
 <p>沒有連上計步器時，App 會請求「動作與健身」權限，讀取 iPhone 自己記到的步數（Apple CoreMotion，手機最多保留 7 天），用來顯示今天的步數、每小時長條圖與桌面小工具。你也可以選擇「連線時合併 iPhone 步數」：每個小時取計步器和 iPhone 中較大的數字。這些步數只在手機上讀取與顯示，不會上傳，也不會被 App 寫入「健康」。</p>
-<h2>3. 位置</h2>
-<p>只有在你打開「走路建議」或「貓咪出沒點」時，App 才會請求「使用 App 期間」的位置權限。位置只用來向 Apple 地圖（MapKit）查詢附近公園與步行路線；這項查詢由 Apple 處理，適用 <a href="https://www.apple.com/tw/legal/privacy/">Apple 隱私權政策</a>。App 不會儲存你的位置，也不會傳給開發者或計步器。</p>
+<h2>3. 位置（步數鬧鐘與走路建議）</h2>
+<p>你設定步數鬧鐘、並開啟預設的「準時模式」時，App 在鬧鐘進行中會使用定位（包含 App 在背景時），用來計算走了多遠，並在走到時準時提醒；畫面上方會出現定位圖示，所有鬧鐘結束就自動停止。關閉準時模式就不使用定位，改用手機動作感測器估算。</p>
+<p>「走路建議」「貓咪出沒點」會用位置向 Apple 地圖（MapKit）查詢附近地點與步行路線，這項查詢由 Apple 處理，適用 <a href="https://www.apple.com/tw/legal/privacy/">Apple 隱私權政策</a>。</p>
+<p>位置只在手機上計算，不會儲存軌跡、不會傳給開發者或其他人。</p>
+<h2>3-1. 通知</h2>
+<p>鬧鐘走到時，App 會在手機上發出本機通知。通知不經過任何伺服器。</p>
+<h2>3-2. 貓咪與照片</h2>
+<p>遇到的貓、道具、圖鑑只存在手機上。「拍照留念」產生的卡片只有在你選擇分享或儲存時才會離開 App；存到「照片」需要你同意「加入照片」的權限。</p>
 <h2>4. 建議文字（Apple Intelligence）</h2>
 <p>「小提醒」由 iPhone 上的裝置端模型（Apple Foundation Models）根據步數與路線產生，運算在手機上完成，資料不會傳出手機。手機不支援或沒有開啟 Apple Intelligence 時，App 改用固定句型。</p>
 <h2>5. 存在手機上的資料</h2>

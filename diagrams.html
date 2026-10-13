@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html lang="zh-Hant-TW"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>計步器接線圖</title>
+<style>
+:root{--ink:#1d2330;--card:#fffdf7;--bg:#f3efe4;--cyan:#0b7f95;--mute:#5d6577}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--ink:#e8e6df;--card:#1c2029;--bg:#12151c;--cyan:#5fd0e4;--mute:#9aa3b5}}
+body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.7 "PingFang TC","Noto Sans TC","Microsoft JhengHei",sans-serif}
+main{max-width:1000px;margin:0 auto;padding:20px 16px 48px}
+h1{font-size:1.5rem;margin:.2em 0 .1em}
+.sub{color:var(--mute);margin:0 0 12px}
+nav{margin:0 0 14px;font-size:.92rem}nav a{margin-right:14px}
+.card{background:var(--card);border:2px solid var(--ink);padding:14px 16px;margin:14px 0}
+.card h2{font-size:1.1rem;margin:0 0 4px}
+.card p{margin:4px 0 10px}
+.fig{display:block;background:#fff;border:1px solid var(--mute);border-radius:6px;overflow:hidden}
+.fig img{display:block;width:100%;height:auto}
+table{border-collapse:collapse;width:100%;font-size:.92rem;margin-top:10px}td,th{border:1px solid var(--mute);padding:6px 8px;text-align:left;vertical-align:top}
+small{color:var(--mute)}a{color:var(--cyan)}
+</style></head><body><main>
+<h1>計步器接線圖</h1>
+<p class="sub">兩種板子各一張。照「腳名」接，不要照位置；排針與模組的腳位順序，動手前請再對一次板子與模組上的絲印。</p>
+<nav><a href="#classic">原版 TTGO T-Display</a><a href="#s3">T-Display S3</a><a href="index.html">模擬器（可以先練習接線）</a><a href="flash.html">韌體燒錄</a></nav>
+
+<section class="card" id="classic">
+<h2>原版：TTGO T-Display ＋ ADXL345 ＋ 蜂鳴器</h2>
+<p>加速度計接 I2C（SDA 21、SCL 22），無源蜂鳴器接 GPIO25，鋰電池插板子背面的電池座、開關串在紅線上。換成 MPU6050 也照同樣 4 條線接，程式開機會自動認。</p>
+<a class="fig" href="wiring/接線圖_TTGO原版.svg" target="_blank" rel="noopener"><img src="wiring/接線圖_TTGO原版.svg" alt="原版計步器接線圖：TTGO T-Display 接 ADXL345、無源蜂鳴器與鋰電池" loading="lazy"></a>
+<table>
+<tr><th style="width:38%">元件腳位</th><th>接到 TTGO T-Display</th></tr>
+<tr><td>ADXL345 VCC</td><td>3V（不要接 5V）</td></tr>
+<tr><td>ADXL345 GND</td><td>GND</td></tr>
+<tr><td>ADXL345 SDA</td><td>GPIO21</td></tr>
+<tr><td>ADXL345 SCL</td><td>GPIO22</td></tr>
+<tr><td>ADXL345 CS、INT1、INT2、SDO</td><td>不接</td></tr>
+<tr><td>無源蜂鳴器 ＋</td><td>GPIO25</td></tr>
+<tr><td>無源蜂鳴器 －</td><td>GND</td></tr>
+<tr><td>鋰電池</td><td>板子背面 JST 電池座；紅線（＋）先經過開關</td></tr>
+</table>
+<p><small>點圖可以放大。<a href="wiring/接線圖_TTGO原版.png" download>下載 PNG</a></small></p>
+</section>
+
+<section class="card" id="s3">
+<h2>T-Display S3：三顆感測器共用一組 I2C</h2>
+<p>MPU6050、VL53L0X、MAX30102 都接 SDA 18、SCL 17；實線一定要接，虛線是選配（中斷、重設、蜂鳴器）。</p>
+<a class="fig" href="wiring/接線圖_S3感測器.svg" target="_blank" rel="noopener"><img src="wiring/接線圖_S3感測器.svg" alt="T-Display S3 感測器接線圖：MPU6050、VL53L0X、MAX30102 接同一組 I2C" loading="lazy"></a>
+<p><small>點圖可以放大。<a href="wiring/接線圖_S3感測器.png" download>下載 PNG</a></small></p>
+</section>
+
+<p><small>焊完先用萬用表確認 3V 與 GND 沒有短路，再插 USB。</small></p>
+</main></body></html>

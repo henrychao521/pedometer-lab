@@ -1,0 +1,66 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Nyanpo Alarm Privacy Policy</title><style>:root{--bg:#fbfaf7;--fg:#1d1d1f;--mut:#5f6368;--line:#e3e0d8;--acc:#0a7d5a}
+@media (prefers-color-scheme:dark){:root{--bg:#141414;--fg:#ececec;--mut:#a0a0a0;--line:#2e2e2e;--acc:#4fd1a5}}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--fg);font:17px/1.7 -apple-system,"Helvetica Neue",sans-serif}
+main{max-width:720px;margin:0 auto;padding:40px 16px 80px}h1{font-size:28px;margin:0 0 4px}h2{font-size:19px;margin:32px 0 6px;padding-top:16px;border-top:1px solid var(--line)}
+.meta{color:var(--mut);font-size:14px}a{color:var(--acc)}table{border-collapse:collapse;width:100%;font-size:15px}td,th{border-bottom:1px solid var(--line);padding:8px 6px;text-align:left;vertical-align:top}
+ul{padding-left:1.2em}</style></head><body><main><p class="meta" style="text-align:right"><a href="privacy.html">繁體中文</a>｜English</p>
+<h1>Nyanpo Alarm (喵步鬧鐘) Privacy Policy</h1>
+<p class="meta">Applies to: the iPhone app “喵步鬧鐘 / Nyanpo Alarm” (bundle ID tw.livingtech.pedometersync)　Effective: October 14, 2026　Developer: Henry Chao (individual)</p>
+<p>Nyanpo Alarm is a walking alarm with pixel cats: set an alarm such as “2,000 more steps” or “1 more km”; when you finish, you meet street cats and get souvenirs, and you look after your own cats in a pixel-art living room. It can also connect to the DIY ESP32 pedometer built in Taiwanese high-school technology classes.</p>
+<p><strong>The app has no server of its own and no account. It does not collect, upload, or sell any personal data, and it has no ads and no tracking.</strong> Below is what the app touches and where it goes. (The app’s interface is in Traditional Chinese; menu names are shown in Chinese with an English gloss.)</p>
+
+<h2>Summary</h2>
+<table><tr><th>Data</th><th>Purpose</th><th>Leaves the phone?</th></tr>
+<tr><td>Steps (iPhone Motion &amp; Fitness, Apple Health)</td><td>Today’s steps, alarm progress</td><td>No</td></tr>
+<tr><td>Location</td><td>Distance alarms, walking suggestions, cat spots</td><td>Only place searches, handled by Apple Maps</td></tr>
+<tr><td>The city you choose</td><td>Current temperature (cats react to hot/cold)</td><td>The city’s fixed coordinates are sent to the Open-Meteo weather service</td></tr>
+<tr><td>Game nickname, cat names and looks</td><td>“Nearby people” and QR cat cards (only if you turn them on or share)</td><td>Only to nearby phones or people you share with</td></tr>
+<tr><td>Cat personalities you write, cats you draw</td><td>Cat dialogue and behavior</td><td>No (Apple Intelligence runs on the phone)</td></tr>
+<tr><td>Pedometer data</td><td>Connecting your DIY pedometer</td><td>Only between your iPhone and your pedometer</td></tr></table>
+
+<h2>1. Steps</h2>
+<ul><li><strong>iPhone steps (Motion &amp; Fitness):</strong> the app reads steps recorded by the iPhone (Apple Core Motion) to show today’s steps and alarm progress.</li>
+<li><strong>Apple Health (read):</strong> the app reads today’s step count from Health (combining iPhone and Apple Watch) to show how far you have walked.</li>
+<li><strong>Apple Health (write):</strong> only when you connect your own DIY pedometer and tap “Sync to Health” (同步到「健康」) does the app write that pedometer’s hourly steps to Health. Demo-mode steps are simulated and are never written to Health.</li>
+<li>Health data is used only on the phone. It is not used for advertising, not shared with third parties, and not stored in iCloud by the app (Health’s own sync is managed by Apple).</li></ul>
+
+<h2>2. Location</h2>
+<ul><li><strong>Distance alarms (“punctual mode”, 準時模式):</strong> while an alarm is running with punctual mode on (the default), the app uses location, including in the background, to measure distance and alert you on time. The location indicator appears at the top of the screen, and location stops when all alarms end. With punctual mode off, the app estimates with motion sensors instead.</li>
+<li><strong>Walking suggestions and cat spots:</strong> the app uses your location to search nearby places and walking routes with Apple Maps (MapKit). These searches are handled by Apple under the <a href="https://www.apple.com/legal/privacy/">Apple Privacy Policy</a>.</li>
+<li>Location is processed only on the phone. The app does not store your routes and does not send location to the developer or anyone else. Step alarms still work if you deny location.</li></ul>
+
+<h2>3. Weather</h2>
+<p>The app does not use GPS for weather. You choose a city in “More” (更多; Taipei by default), and the app asks the free <a href="https://open-meteo.com/">Open-Meteo</a> service for the current temperature at that city’s fixed coordinates, so the cats in the living room react to hot or cold weather. The request contains no personal data, but like any internet connection, Open-Meteo can see the connecting IP address; see the <a href="https://open-meteo.com/en/terms">Open-Meteo terms</a>.</p>
+
+<h2>4. Nearby people (local network)</h2>
+<ul><li>Off by default. When you turn on “Cats follow nearby people home” (貓咪會跟著附近的人回家) in “More”, the app uses Apple’s MultipeerConnectivity (Bluetooth / same Wi-Fi) to find nearby phones that also have Nyanpo Alarm open. The first time, iOS asks for “Local Network” permission.</li>
+<li>Only these are exchanged: a randomly generated device code, your game nickname, and your cats’ names and appearance. <strong>No location, photos, or contact details are sent, and there is no chat.</strong></li>
+<li>If someone’s name contains profanity, a URL, a phone number, or a social-media handle, the app replaces it with a default name. You can block a person in “More → Nearby people: block and report” (附近的人：封鎖與回報) — after that, no data is exchanged with them — or report an inappropriate name by email.</li></ul>
+
+<h2>5. QR cat cards</h2>
+<p>“Share my cat card” turns your nickname and a cat’s name and appearance into a QR code image, which leaves the app only if you choose to share or save it. “Read a friend’s cat card” uses the system photo picker, so the app sees only the one photo you pick and never needs access to your photo library.</p>
+
+<h2>6. Apple Intelligence (on-device)</h2>
+<p>On iPhones that support and have Apple Intelligence turned on, the app uses Apple’s on-device model (Foundation Models) to write cat dialogue, diary lines and walking tips, and gives the on-device model <strong>a rendering of the in-game living room and its furniture list</strong> to decide where each cat wants to go. All of this runs on the phone; nothing is sent off the device. Personality text you write for your own cats is also given only to the on-device model. When Apple Intelligence is unavailable, the app uses fixed rules and templates.</p>
+
+<h2>7. Pedometer (Bluetooth)</h2>
+<p>The app connects to your own pedometer over Bluetooth to read steps, hourly records, battery level and settings, and can change settings and set the clock. This data travels only between your iPhone and your pedometer.</p>
+
+<h2>8. Photos, notifications, widgets</h2>
+<ul><li>Saving a photo with your cats to Photos requires the “Add Photos Only” permission; the app does not read your library.</li>
+<li>When an alarm finishes, the app shows a local notification; no server is involved.</li>
+<li>Steps and alarm progress shown on the Lock Screen, Dynamic Island and Home Screen widgets are stored in space shared by the app and its widget on the phone.</li></ul>
+
+<h2>9. Data stored on your phone</h2>
+<p>Your cats, furniture, souvenirs, journal, alarm history, cats you designed or drew, personality text and settings are stored only in the app’s space on your phone and are deleted when you delete the app. The developer cannot access them.</p>
+
+<h2>10. Children and students</h2>
+<p>The app may be used by middle- and high-school students (for example in technology classes). It requires no account and does not collect names, email addresses, phone numbers, or any personally identifying information. Game nicknames can be anything; real names are not needed.</p>
+
+<h2>11. Health information</h2>
+<p>The physical-activity guidance shown in the app is quoted from the World Health Organization (WHO) 2020 guidelines with a link to the source. The app does not provide medical advice, diagnosis, or treatment; step and distance figures are for reference only.</p>
+
+<h2>12. Changes and contact</h2>
+<p>If this policy changes, this page and the effective date above will be updated. Questions, feedback, and reports of inappropriate content: <a href="mailto:henrychao521@gmail.com">henrychao521@gmail.com</a>.</p>
+</main></body></html>

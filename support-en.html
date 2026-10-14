@@ -1,0 +1,37 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Nyanpo Alarm Support</title><style>:root{--bg:#fbfaf7;--fg:#1d1d1f;--mut:#5f6368;--line:#e3e0d8;--acc:#0a7d5a}
+@media (prefers-color-scheme:dark){:root{--bg:#141414;--fg:#ececec;--mut:#a0a0a0;--line:#2e2e2e;--acc:#4fd1a5}}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--fg);font:17px/1.7 -apple-system,"Helvetica Neue",sans-serif}
+main{max-width:720px;margin:0 auto;padding:40px 16px 80px}h1{font-size:28px;margin:0 0 4px}h2{font-size:19px;margin:32px 0 6px;padding-top:16px;border-top:1px solid var(--line)}
+.meta{color:var(--mut);font-size:14px}a{color:var(--acc)}table{border-collapse:collapse;width:100%;font-size:15px}td,th{border-bottom:1px solid var(--line);padding:8px 6px;text-align:left;vertical-align:top}
+ul{padding-left:1.2em}</style></head><body><main><p class="meta" style="text-align:right"><a href="support.html">繁體中文</a>｜English</p>
+<h1>Nyanpo Alarm (喵步鬧鐘) Help &amp; Support</h1>
+<p class="meta">A walking alarm where you raise pixel cats. The app’s interface is in Traditional Chinese; menu names below are shown in Chinese with an English gloss.</p>
+
+<h2>Why I made this app</h2>
+<p>Our cat at home passed away and became a cat angel. I wanted a place where I could always remember our cat, so I designed an app where everyone can set up their own beloved cat — so that, at least, we can keep remembering them and know they are doing okay.</p>
+<p>I also hope that “The Wonderful Adventures of JoJo and Diandian (點顛)” can go on.</p>
+
+<h2>Contact</h2>
+<p>For questions, suggestions, or to report inappropriate content, email <a href="mailto:henrychao521@gmail.com">henrychao521@gmail.com</a> (developer: Henry Chao). English or Chinese is fine. Please include your iPhone model, iOS version, and the app version (in “More → About”, 更多 → 關於).</p>
+
+<h2>Requirements</h2>
+<ul><li>iPhone with iOS 18 or later.</li>
+<li>Cat dialogue and room analysis use Apple Intelligence and need a supported iPhone with Apple Intelligence turned on. Without it, the app uses fixed rules and templates; everything else works.</li>
+<li>The DIY ESP32 pedometer is optional. You can try its screens in demo mode (示範模式).</li></ul>
+
+<h2>FAQ</h2>
+<table><tr><th>Problem</th><th>What to do</th></tr>
+<tr><td>The alarm went off late</td><td>In “More” (更多), make sure “Punctual mode” (準時模式) is on and location is allowed. With punctual mode off, the app estimates with motion sensors and may alert late.</td></tr>
+<tr><td>Steps show 0 or don’t update</td><td>In Settings → Privacy &amp; Security, make sure “Motion &amp; Fitness” and “Health” allow Nyanpo Alarm to read steps.</td></tr>
+<tr><td>Can’t find friends nearby</td><td>Both phones need “Cats follow nearby people home” (貓咪會跟著附近的人回家) turned on in “More”, with Local Network permission allowed, and must be close by (Bluetooth or the same Wi-Fi).</td></tr>
+<tr><td>Someone nearby has an inappropriate name</td><td>Go to “More → Nearby people: block and report” (附近的人：封鎖與回報) to block them, or tap “Report” (回報) to email us.</td></tr>
+<tr><td>A cat card QR code won’t read</td><td>Use “More → Read a friend’s cat card” (讀取朋友的貓卡) and pick a photo where the whole QR code is sharp and visible.</td></tr>
+<tr><td>“This iPhone doesn’t have Apple Intelligence” in the room analysis</td><td>Your model doesn’t support it or it is turned off. Cats still act on temperature, time of day, and personality.</td></tr>
+<tr><td>The pedometer keeps “searching”</td><td>Make sure the pedometer’s Bluetooth is on and Wi-Fi is off (they can’t run at the same time), and its firmware is up to date (<a href="https://henrychao521.github.io/pedometer-lab/flash.html">web flasher</a>).</td></tr>
+<tr><td>Will syncing to Health twice double my steps?</td><td>No. When the same hour is synced again, Health replaces the old value with the new one.</td></tr></table>
+
+<h2>Links</h2>
+<ul><li><a href="privacy-en.html">Privacy Policy</a></li>
+<li><a href="https://henrychao521.github.io/pedometer-lab/">Pedometer simulator and teaching materials (Chinese)</a></li></ul>
+</main></body></html>

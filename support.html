@@ -1,21 +1,32 @@
 <!doctype html><html lang="zh-Hant-TW"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>計步器 App 支援</title><style>:root{--bg:#fbfaf7;--fg:#1d1d1f;--mut:#5f6368;--line:#e3e0d8;--acc:#0a7d5a}
+<title>喵步鬧鐘 支援</title><style>:root{--bg:#fbfaf7;--fg:#1d1d1f;--mut:#5f6368;--line:#e3e0d8;--acc:#0a7d5a}
 @media (prefers-color-scheme:dark){:root{--bg:#141414;--fg:#ececec;--mut:#a0a0a0;--line:#2e2e2e;--acc:#4fd1a5}}
 *{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--fg);font:17px/1.75 -apple-system,"PingFang TC","Noto Sans TC",sans-serif}
 main{max-width:720px;margin:0 auto;padding:40px 16px 80px}h1{font-size:28px;margin:0 0 4px}h2{font-size:19px;margin:32px 0 6px;padding-top:16px;border-top:1px solid var(--line)}
 .meta{color:var(--mut);font-size:14px}a{color:var(--acc)}table{border-collapse:collapse;width:100%;font-size:15px}td,th{border-bottom:1px solid var(--line);padding:8px 6px;text-align:left;vertical-align:top}
-ul{padding-left:1.2em}</style></head><body><main><h1>「計步器」App 使用說明與支援</h1>
-<p class="meta">iPhone App「計步器」：生活科技課自製 ESP32 計步器的配套 App</p>
+ul{padding-left:1.2em}</style></head><body><main><h1>「喵步鬧鐘」使用說明與支援</h1>
+<p class="meta">iPhone App「喵步鬧鐘」：走路養貓的散步鬧鐘</p>
+
+<h2>聯絡我們</h2>
+<p>使用問題、建議、不當內容回報，請寄 <a href="mailto:henrychao521@gmail.com">henrychao521@gmail.com</a>（開發者：趙珩宇）。來信請附上 iPhone 機型、iOS 版本與 App 版本（在「更多 → 關於」）。</p>
+
 <h2>需要什麼</h2>
-<ul><li>iPhone（iOS 17 以上）</li><li>燒好韌體 v1.16 以上、並在「設定 → 藍牙」打開藍牙的計步器（T-Display 或 T-Display-S3）<br>還沒有計步器的話，可以在 App 首頁按「用示範模式看看」。</li></ul>
+<ul><li>iPhone，iOS 18 以上。</li>
+<li>貓咪說話、看場景等 Apple Intelligence 功能需要支援的機型並開啟 Apple Intelligence；沒有的話，App 改用固定的規則與句型，其他功能都能用。</li>
+<li>自製 ESP32 計步器是選配，沒有也能用（可以先用「示範模式」看看）。</li></ul>
+
 <h2>常見問題</h2>
 <table><tr><th>狀況</th><th>做法</th></tr>
-<tr><td>一直顯示「搜尋計步器中」</td><td>確認計步器的藍牙已開（設定 → 藍牙），而且 Wi-Fi 是關的（兩者不能同時開）。</td></tr>
-<tr><td>顯示「裝置韌體太舊」</td><td>用<a href="flash.html">網頁燒錄工具</a>把計步器更新到最新版。</td></tr>
-<tr><td>同步到「健康」失敗：還沒對時</td><td>先按「用 iPhone 的時間對時」，再同步。</td></tr>
-<tr><td>重複同步會不會讓步數變兩倍？</td><td>不會。同一天同一小時再同步，「健康」會用新值取代舊值。</td></tr>
-<tr><td>找不到附近的公園</td><td>確認已允許位置權限、手機有網路；附近 3 公里內沒有公園時會顯示找不到。</td></tr>
-</table>
+<tr><td>步數鬧鐘走到了卻晚提醒</td><td>到「更多」確認「準時模式」已開啟，並允許位置權限。關閉準時模式時改用動作感測器估算，提醒可能晚到。</td></tr>
+<tr><td>步數是 0 或不更新</td><td>到「設定 → 隱私權與安全性」確認「動作與健身」和「健康」都允許喵步鬧鐘讀取步數。</td></tr>
+<tr><td>附近的人找不到朋友</td><td>兩支手機都要在「更多」打開「貓咪會跟著附近的人回家」，並允許「區域網路」權限；要在附近（藍牙或同一個 Wi-Fi）。</td></tr>
+<tr><td>附近的人出現不適當的名稱</td><td>「更多 → 附近的人：封鎖與回報」可以封鎖對方，或按「回報」寄信給我們。</td></tr>
+<tr><td>貓卡 QR Code 讀不到</td><td>用「更多 → 讀取朋友的貓卡」，從相簿選一張完整、清楚拍到 QR Code 的照片。</td></tr>
+<tr><td>貓咪看場景顯示「這支手機沒有 Apple Intelligence」</td><td>機型不支援或沒有開啟 Apple Intelligence。貓咪仍會依氣溫、時段與個性行動。</td></tr>
+<tr><td>計步器一直顯示「搜尋中」</td><td>確認計步器的藍牙已開、Wi-Fi 是關的（兩者不能同時開），韌體是最新版（<a href="https://henrychao521.github.io/pedometer-lab/flash.html">網頁燒錄工具</a>）。</td></tr>
+<tr><td>同步到「健康」會不會讓步數變兩倍？</td><td>不會。同一天同一小時再同步，「健康」會用新值取代舊值。</td></tr></table>
+
 <h2>相關連結</h2>
-<ul><li><a href="index.html">計步器模擬器與教材</a></li><li><a href="privacy.html">隱私權政策</a></li><li>回報問題：<a href="https://github.com/henrychao521/pedometer-lab/issues">GitHub 問題回報</a></li></ul>
+<ul><li><a href="privacy.html">隱私權政策</a></li>
+<li><a href="https://henrychao521.github.io/pedometer-lab/">計步器模擬器與教材</a></li></ul>
 </main></body></html>
